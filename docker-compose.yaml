@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: content-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: postgres
+    ports:
+      - "5434:5432"          # expose to host for local dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # persistent storage
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U appuser -d appdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

@@ -1,0 +1,49 @@
+{# templates/admin/users/form.html #}
+
+<form method="post" action="{{ action }}">
+  {{ form.hidden_tag() }}
+
+  <div>
+    <label for="{{ form.email.id }}">{{ form.email.label.text }}</label>
+    {{ form.email }}
+    {% for e in form.email.errors %}
+      <p>{{ e }}</p>
+    {% endfor %}
+  </div>
+
+  <div>
+    <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
+    {{ form.password }}
+    {% for e in form.password.errors %}
+      <p>{{ e }}</p>
+    {% endfor %}
+  </div>
+
+  <div>
+    <label for="{{ form.first_name.id }}">{{ form.first_name.label.text }}</label>
+    {{ form.first_name }}
+    {% for e in form.first_name.errors %}
+      <p>{{ e }}</p>
+    {% endfor %}
+  </div>
+
+  <div>
+    <label for="{{ form.last_name.id }}">{{ form.last_name.label.text }}</label>
+    {{ form.last_name }}
+    {% for e in form.last_name.errors %}
+      <p>{{ e }}</p>
+    {% endfor %}
+  </div>
+
+  <div>
+    {{ form.is_active }}
+    <label for="{{ form.is_active.id }}">{{ form.is_active.label.text }}</label>
+    {% for e in form.is_active.errors %}
+      <p>{{ e }}</p>
+    {% endfor %}
+  </div>
+
+  <div>
+    {{ form.submit }}
+  </div>
+</form>

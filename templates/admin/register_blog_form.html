@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Register Blog{% endblock %}
+
+{% block content %}
+    <h1>Register Blog</h1>
+
+    <form method="post" action="{{ url_for('blog_admin.upload_blog') }}" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+
+        <div>
+            <label for="{{ form.md_file.id }}">{{ form.md_file.label.text }}</label>
+            {{ form.md_file }}
+            {% if form.md_file.description %}
+                <small>{{ form.md_file.description }}</small>
+            {% endif %}
+            {% for e in form.md_file.errors %}
+                <p>{{ e }}</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            {{ form.publish }}
+            <label for="{{ form.publish.id }}">{{ form.publish.label.text }}</label>
+            {% for e in form.publish.errors %}
+                <p>{{ e }}</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            {{ form.submit }}
+        </div>
+    </form>
+{% endblock %}

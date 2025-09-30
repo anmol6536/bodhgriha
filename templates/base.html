@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}My Site{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {# Place to inject extra <head> content like stylesheets #}
+    {% block head %}{% endblock %}
+</head>
+<body>
+<header>
+    <nav>
+        <a href="{{ url_for('user.new_user') }}">New User</a> |
+        <a href="{{ url_for('blog_admin.upload_blog') }}">Register Blog</a>
+        {# Add other navigation links here #}
+    </nav>
+</header>
+
+<main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li><strong>{{ category.title() }}:</strong> {{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+    <p>&copy; {{ config.SITE_NAME if config.SITE_NAME else "My Site" }} {{ current_year|default(2025) }}</p>
+</footer>
+
+{# Place to inject scripts at the end of body #}
+{% block scripts %}{% endblock %}
+</body>
+</html>
