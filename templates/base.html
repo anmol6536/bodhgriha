@@ -13,7 +13,11 @@
     <nav>
         <a href="{{ url_for('user.new_user') }}">New User</a> |
         <a href="{{ url_for('blog_admin.upload_blog') }}">Register Blog</a>
-        {# Add other navigation links here #}
+        {% if current_user.is_authenticated %}
+            | <a href="#">Logout ({{ current_user.email }})</a>
+        {% else %}
+            | <a href="{{ url_for('user.login') }}">Login</a>
+        {% endif %}
     </nav>
 </header>
 

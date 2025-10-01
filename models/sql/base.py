@@ -1,9 +1,19 @@
 # base.py
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import IntFlag, auto
 from typing import Any, Dict, Optional
+import uuid
+from enum import Enum
+
+from sqlalchemy import (
+    BigInteger, String, Boolean, DateTime, ForeignKey,
+    Index, UniqueConstraint, text, func, Enum as SQLEnum
+)
+from sqlalchemy.dialects.postgresql import CITEXT, JSONB, INET, UUID, ARRAY
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from flask_login import UserMixin
 
 from sqlalchemy import (
     Boolean,
@@ -61,7 +71,7 @@ class RoleBits(IntFlag):
 
 
 # ---------- Models
-class User(TimestampMixin, Base):
+class User(UserMixin, TimestampMixin, Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -95,6 +105,184 @@ class User(TimestampMixin, Base):
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r} roles={RoleBits(self.role_bits)}>"
+
+
+# ---- Keep your Base, TimestampMixin, RoleBits, User as-is above this line ----
+# (No edits to User)
+
+# ---------- Enums
+class TwoFAMethod(str, Enum):
+    TOTP = "TOTP"
+    SMS = "SMS"  # optional; leave columns nullable if unused
+    EMAIL = "EMAIL"  # optional (fallback)
+    # Add WEBAUTHN later without breaking existing data
+
+
+class TokenPurpose(str, Enum):
+    EMAIL_VERIFY = "EMAIL_VERIFY"
+    PASSWORD_RESET = "PASSWORD_RESET"
+
+
+# ---------- Address
+class Address(TimestampMixin, Base):
+    __tablename__ = "addresses"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Minimal, normalized enough for India-first; extensible globally
+    line1: Mapped[str] = mapped_column(String(255), nullable=False)
+    line2: Mapped[str | None] = mapped_column(String(255))
+    city: Mapped[str] = mapped_column(String(120), nullable=False)
+    state: Mapped[str | None] = mapped_column(String(120))  # e.g., MH, KA
+    postal_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    country_iso2: Mapped[str] = mapped_column(String(2), nullable=False, server_default=text("'IN'"))
+
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+
+    user: Mapped["User"] = relationship(backref="addresses")
+
+    __table_args__ = (
+        # At most one primary address per user (enforced by partial unique index)
+        Index(
+            "ux_addresses_user_primary",
+            "user_id",
+            unique=True,
+            postgresql_where=text("is_primary = true")
+        ),
+        Index("ix_addresses_user", "user_id"),
+        Index("ix_addresses_postal", "postal_code"),
+    )
+
+
+# ---------- Two-Factor Auth (supports TOTP now; SMS/Email optional)
+class TwoFactorCredential(TimestampMixin, Base):
+    __tablename__ = "two_factor_credentials"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    method: Mapped[TwoFAMethod] = mapped_column(SQLEnum(TwoFAMethod, name="twofa_method"), nullable=False)
+
+    # TOTP
+    totp_secret_b32: Mapped[str | None] = mapped_column(String(64))  # base32 secret (no spaces)
+    # SMS (optional)
+    phone_cc: Mapped[str | None] = mapped_column(String(4))  # e.g., "+91"
+    phone_number: Mapped[str | None] = mapped_column(String(20))
+    # EMAIL (optional)
+    email_override: Mapped[str | None] = mapped_column(CITEXT)
+
+    label: Mapped[str | None] = mapped_column(String(120))
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Store hashed backup codes; rotate on regeneration
+    backup_codes_hashes: Mapped[list[str]] = mapped_column(ARRAY(String(128)), nullable=False,
+                                                           server_default=text("'{}'"))
+
+    failed_attempts: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped["User"] = relationship(backref="twofa_credentials")
+
+    __table_args__ = (
+        # A user can have multiple 2FA methods; but only one active per method if you wish—enforce with partial unique
+        Index("ux_twofa_user_method_enabled", "user_id", "method",
+              unique=True, postgresql_where=text("enabled = true")),
+        Index("ix_twofa_user", "user_id"),
+    )
+
+
+# ---------- Sessions (refresh tokens or server-side sessions)
+class UserSession(TimestampMixin, Base):
+    __tablename__ = "user_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Store only a hash of refresh token/server session id
+    token_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    ip_address: Mapped[str | None] = mapped_column(INET)
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+
+    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+
+    user: Mapped["User"] = relationship(backref="sessions")
+
+    __table_args__ = (
+        Index("ix_sessions_user", "user_id"),
+        Index("ix_sessions_expires", "expires_at"),
+    )
+
+
+# ---------- Verification / Reset tokens (short-lived, one table, typed)
+class UserToken(TimestampMixin, Base):
+    __tablename__ = "user_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    purpose: Mapped[TokenPurpose] = mapped_column(SQLEnum(TokenPurpose, name="user_token_purpose"), nullable=False)
+    # Store only a hash to avoid leaking secrets if DB is compromised
+    token_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+
+    # For one-time use tokens
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+
+    user: Mapped["User"] = relationship(backref="tokens")
+
+    __table_args__ = (
+        Index("ix_usertokens_user", "user_id"),
+        Index("ix_usertokens_purpose", "purpose"),
+        Index("ix_usertokens_expires", "expires_at"),
+    )
+
+
+# ---------- Deleted Users
+class DeletedUser(TimestampMixin, Base):
+    """
+    Archive of users who deleted their account.
+    Only store minimal identifying info for audit/compliance.
+    """
+
+    __tablename__ = "deleted_users"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    original_user_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
+
+    email: Mapped[str] = mapped_column(CITEXT, nullable=False)
+    first_name: Mapped[str | None] = mapped_column(String(200))
+    last_name: Mapped[str | None] = mapped_column(String(200))
+
+    # When deletion occurred
+    deleted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # Why they deleted / system notes (optional)
+    reason: Mapped[str | None] = mapped_column(String(255))
+    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+
+    __table_args__ = (
+        Index("ix_deleted_users_email", "email"),
+        Index("ix_deleted_users_deleted_at", "deleted_at"),
+    )
 
 
 class BlogPost(TimestampMixin, Base):
@@ -154,8 +342,8 @@ def ensure_postgres_extensions(bind) -> None:
         conn.execute(sql_text("CREATE EXTENSION IF NOT EXISTS citext"))
         # tsvector is built-in; no extension needed for basic English config
         # If you use unaccent or pg_trgm later:
-        # conn.execute(sql_text("CREATE EXTENSION IF NOT EXISTS unaccent"))
-        # conn.execute(sql_text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        conn.execute(sql_text("CREATE EXTENSION IF NOT EXISTS unaccent"))
+        conn.execute(sql_text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
 
 
 # ---------- Optional: materialized convenience for search (example)

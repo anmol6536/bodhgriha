@@ -20,25 +20,18 @@
     </div>
 
     <div>
-        <label for="{{ form.first_name.id }}">{{ form.first_name.label.text }}</label>
-        {{ form.first_name }}
-        {% for e in form.first_name.errors %}
+        <!-- totp code -->
+        <label for="{{ form.totp_code.id }}">{{ form.totp_code.label.text }}</label>
+        {{ form.totp_code }}
+        {% for e in form.totp_code.errors %}
             <p>{{ e }}</p>
         {% endfor %}
     </div>
 
     <div>
-        <label for="{{ form.last_name.id }}">{{ form.last_name.label.text }}</label>
-        {{ form.last_name }}
-        {% for e in form.last_name.errors %}
-            <p>{{ e }}</p>
-        {% endfor %}
-    </div>
-
-    <div>
-        {{ form.is_active }}
-        <label for="{{ form.is_active.id }}">{{ form.is_active.label.text }}</label>
-        {% for e in form.is_active.errors %}
+        {{ form.remember_me }}
+        <label for="{{ form.remember_me.id }}">{{ form.remember_me.label.text }}</label>
+        {% for e in form.remember_me.errors %}
             <p>{{ e }}</p>
         {% endfor %}
     </div>

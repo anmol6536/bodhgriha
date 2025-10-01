@@ -80,8 +80,17 @@ class LoginForm(FlaskForm):
     )
     password = PasswordField(
         "Password",
-        validators=[DataRequired(), Length(min=6)],
+        validators=[DataRequired(), Length(min=4)],
     )
+    remember_me = BooleanField("Remember Me", default=False)
+
+    # totp
+    totp_code = StringField(
+        "2FA Code (if enabled)",
+        validators=[Optional(), Length(min=6, max=6)],
+        description="Enter your 2FA code"
+    )
+
     submit = SubmitField("Log In")
 
 

@@ -7,6 +7,9 @@ import os
 from core.db import init_db
 from models.sql import User, BlogPost
 from views import register_views
+from flask_login import LoginManager
+from sqlalchemy import select
+from core.db import uow
 
 
 def create_app():
@@ -61,11 +64,21 @@ def create_app():
         session_cookie_secure=True,
     )
 
+    # --- Login manager
+    login_manager = LoginManager()
+    login_manager.login_view = "user.login"
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        with uow() as db:
+            return db.scalar(select(User).where(User.id == int(user_id)))
+
     register_views(app)
 
     @app.route('/')
     def hello():
-        return "<h1>Hello World</h1>"
+        return render_template('base.html')
 
     @app.route('/favicon.ico')
     def favicon():
