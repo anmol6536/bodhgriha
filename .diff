@@ -1,1215 +1,1653 @@
-diff --git a/.gitignore b/.gitignore
-index 34bbb0c..f2bc341 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -163,3 +163,22 @@ cython_debug/
- .idea/
- .idea/*
- 
-+
-+# VS Code
-+.vscode/
-+.history/
-+*.code-workspace
-+*.sublime-workspace
-+*.sublime-project
-+
-+
-+# MacOS
-+.DS_Store
-+.AppleDouble
-+.LSOverride
-+
-+# certificates
-+*.pem
-+*.crt
-+*.key
-+
+diff --git a/.diff b/.diff
+index a1032da..e69de29 100644
+--- a/.diff
++++ b/.diff
+@@ -1,1215 +0,0 @@
+-diff --git a/.gitignore b/.gitignore
+-index 34bbb0c..f2bc341 100644
+---- a/.gitignore
+-+++ b/.gitignore
+-@@ -163,3 +163,22 @@ cython_debug/
+- .idea/
+- .idea/*
+- 
+-+
+-+# VS Code
+-+.vscode/
+-+.history/
+-+*.code-workspace
+-+*.sublime-workspace
+-+*.sublime-project
+-+
+-+
+-+# MacOS
+-+.DS_Store
+-+.AppleDouble
+-+.LSOverride
+-+
+-+# certificates
+-+*.pem
+-+*.crt
+-+*.key
+-+
+-diff --git a/app.py b/app.py
+-index 601eaad..0e87938 100644
+---- a/app.py
+-+++ b/app.py
+-@@ -10,12 +10,23 @@ from views import register_views
+- from flask_login import LoginManager
+- from sqlalchemy import select
+- from core.db import uow
+-+from core.enum_seed import seed_enums
+-+from utilities.logger import configure_logging
+-+from services.base import _context, _invert_navbar_colors
+- 
+- 
+- def create_app():
+-     app = Flask(__name__)
+-+    app.config.logger = configure_logging(app.config.get("LOG_LEVEL", "DEBUG"))
+-+    app.config['STATIC_FOLDER'] = 'static'
+- 
+--    init_db()
+-+    init_db()  # create tables if not exist (dev only; use Alembic in prod)
+-+    app.config.logger.info("Database initialized.")
+-+
+-+    app.config.logger.info("Seeding enumeration tables...")
+-+    with uow() as db:
+-+        seed_enums(db)
+-+    app.config.logger.info("Enumeration tables seeded.")
+- 
+-     app.config.update(
+-         SECRET_KEY=os.environ.get("SECRET_KEY", "dev-not-secure"),
+-@@ -23,6 +34,7 @@ def create_app():
+-         SESSION_COOKIE_HTTPONLY=True,  # not accessible to JS
+-         SESSION_COOKIE_SAMESITE="Lax",  # CSRF mitigation for cross-site
+-         WTF_CSRF_TIME_LIMIT=None,  # optional, disable token timeout
+-+        SITE_NAME="Bodhgriha"
+-     )
+- 
+-     # --- CSRF protection
+-@@ -30,17 +42,75 @@ def create_app():
+- 
+-     # --- Content Security Policy (no unsafe-inline; use nonce)
+-     csp = {
+-+        # --- Defaults & hardening ---
+-         "default-src": "'self'",
+--        "script-src": ["'self'"],  # nonced scripts will be allowed via talisman nonce helper
+--        "style-src": ["'self'", "'unsafe-inline'"],  # keep inline styles off if you can; Tailwind often OK
+--        "img-src": ["'self'", "data:"],  # add your CDN domains if needed
+--        "font-src": ["'self'"],
+--        "connect-src": ["'self'"],  # add API domains if needed
+--        "frame-ancestors": "'none'",  # disallow embedding
+-         "base-uri": "'self'",
+-         "form-action": "'self'",
+-+        "frame-ancestors": "'none'",
+-         "object-src": "'none'",
+--        "upgrade-insecure-requests": "",  # auto-upgrade http->https
+-+        "script-src-attr": "'none'",
+-+        "upgrade-insecure-requests": "",
+-+
+-+        # --- Scripts (Tailwind CDN + HTMX) ---
+-+        "script-src": [
+-+            "'self'",
+-+            # nonced inline scripts allowed via Talisman (nonce injected)
+-+            "https://cdn.tailwindcss.com",
+-+            "https://unpkg.com",
+-+            "unsafe-inline",  # needed for HTMX
+-+            # "'unsafe-eval'",  # only if you set tailwind.config in-page at runtime
+-+        ],
+-+
+-+        # --- Styles ---
+-+        "style-src": [
+-+            "'self'",
+-+            "'unsafe-inline'",  # Tailwind CDN injects <style>
+-+            "https:",
+-+            "data:",
+-+            "https://fonts.googleapis.com",  # drop if not using Google Fonts
+-+        ],
+-+
+-+        # --- Images (QR/data URIs ok) ---
+-+        "img-src": [
+-+            "'self'",
+-+            "data:",
+-+            "blob:",
+-+            "https:",
+-+        ],
+-+
+-+        # --- VIDEO/AUDIO (add this for your background video) ---
+-+        "media-src": [
+-+            "'self'",
+-+            "https:",  # keep if you might host video on a CDN later
+-+            "data:",  # rare, but harmless
+-+            "blob:",  # needed only if you ever use blob URLs
+-+        ],
+-+
+-+        # --- Fonts ---
+-+        "font-src": [
+-+            "'self'",
+-+            "https://fonts.gstatic.com",  # drop if not using Google Fonts
+-+            "data:",
+-+        ],
+-+
+-+        # --- XHR / SSE / fetch (HTMX) ---
+-+        "connect-src": [
+-+            "'self'",
+-+            "https://maps.googleapis.com",
+-+            "https://maps.gstatic.com",
+-+        ],
+-+
+-+        # --- Frames (for <iframe> embeds like Google Maps) ---
+-+        "frame-src": [
+-+            "'self'",
+-+            "https://www.google.com",
+-+            "https://maps.google.com",
+-+            "https://www.google.com/maps",
+-+        ],
+-+
+-+        # (Optional) lock these harder if you’re not using them:
+-+        # "frame-src": "'none'",
+-+        # "worker-src": ["'self'", "blob:"],
+-     }
+- 
+-     # --- Talisman security headers
+-@@ -66,7 +136,7 @@ def create_app():
+- 
+-     # --- Login manager
+-     login_manager = LoginManager()
+--    login_manager.login_view = "user.login"
+-+    login_manager.login_view = "auth.login"
+-     login_manager.init_app(app)
+- 
+-     @login_manager.user_loader
+-@@ -77,20 +147,39 @@ def create_app():
+-     register_views(app)
+- 
+-     @app.route('/')
+--    def hello():
+--        return render_template('base.html')
+-+    def index():
+-+        from utilities.navbar_loader import get_navbar_context
+-+        return render_template(
+-+            "index.html",
+-+            **_context()
+-+        )
+- 
+-     @app.route('/favicon.ico')
+-     def favicon():
+--        return send_from_directory(
+--            os.path.join(app.root_path, 'static'),
+--            'favicon.png',
+--            mimetype='image/png'
+-+        return send_from_directory(app.static_folder, 'icons/icon.png', mimetype='image/png')
+-+
+-+    @app.route('/manifest.json')
+-+    def manifest():
+-+        return send_from_directory(app.static_folder, 'manifest.json')
+-+
+-+    @app.route('/robots.txt')
+-+    def robots_txt():
+-+        return send_from_directory(app.static_folder, 'robots.txt', mimetype='text/plain')
+-+
+-+    @app.route('/about-us')
+-+    def about_us():
+-+        return render_template(
+-+            "about.html",
+-+            **_invert_navbar_colors(_context())
+-         )
+- 
+-+    @app.route('/testimonials', methods=['GET', 'POST'])
+-+    def testimonials():
+-+        # This route can be used for testimonials management if needed
+-+        # For now, redirect to home page
+-+        return redirect(url_for('index'))
+-+
+-     return app
+- 
+- 
+--if __name__ == "__main__":
+--    app = create_app()
+--    app.run(debug=True, host="0.0.0.0", port=9090, ssl_context="adhoc")
+-+app = create_app()
+-\ No newline at end of file
+-diff --git a/core/db.py b/core/db.py
+-index 67d74f2..2d6f5f3 100644
+---- a/core/db.py
+-+++ b/core/db.py
+-@@ -1,10 +1,12 @@
+- # core/db.py
+--from sqlalchemy import create_engine
+--from sqlalchemy.orm import sessionmaker
+--from models.sql.base import Base, ensure_postgres_extensions
+--from utilities.connection import EngineManager
+- from contextlib import contextmanager
+- 
+-+from sqlalchemy import text
+-+from sqlalchemy.orm import sessionmaker
+-+
+-+from models import Base
+-+from models.sql import ensure_postgres_extensions
+-+from utilities.connection import EngineManager
+- 
+- ENGINE = EngineManager.get('BODHGRIHA')
+- SessionLocal = sessionmaker(bind=ENGINE, expire_on_commit=False, autoflush=False)
+-@@ -19,13 +21,20 @@ def uow(readonly: bool = False):
+-     db = SessionLocal()
+-     try:
+-         if readonly:
+--            yield db
+--            db.rollback()  # discard any accidental writes
+-+            trans = db.begin()
+-+            try:
+-+                db.execute(text("SET TRANSACTION READ ONLY"))
+-+                yield db
+-+                trans.commit()  # ✅ commit, not rollback
+-+            except:
+-+                trans.rollback()
+-+                raise
+-         else:
+--            with db.begin():  # begin/commit/rollback handled here
+-+            with db.begin():
+-                 yield db
+-     except:
+--        db.rollback()
+-+        if db.in_transaction():
+-+            db.rollback()
+-         raise
+-     finally:
+-         db.close()
+-@@ -36,5 +45,27 @@ def init_db() -> None:
+-     Dev/test convenience: create extensions and tables.
+-     Do NOT call in production. Use Alembic instead.
+-     """
+-+    # create schemas
+-+    from sqlalchemy import text
+-+
+-+    with ENGINE.connect() as conn:
+-+        SCHEMAS = [
+-+            'core',
+-+            'courses',
+-+            'registrations',
+-+            'payments',
+-+            'admin',
+-+            'auth',
+-+            'audit',
+-+            'notifications',
+-+            'reports',
+-+            'analytics',
+-+            'content',
+-+        ]
+-+        for schema in SCHEMAS:
+-+            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema};"))
+-+
+-+        conn.commit()
+-+
+-     ensure_postgres_extensions(ENGINE)
+-     Base.metadata.create_all(ENGINE)
+-diff --git a/forms/user.py b/forms/user.py
+-index c9b65cb..e17f6cf 100644
+---- a/forms/user.py
+-+++ b/forms/user.py
+-@@ -101,3 +101,14 @@ class ForgotPasswordForm(FlaskForm):
+-         validators=[DataRequired(), Email(), Length(max=255)],
+-     )
+-     submit = SubmitField("Send Reset Link")
+-+
+-+
+-+class RegisterTOTPForm(FlaskForm):
+-+    """Form to register TOTP 2FA."""
+-+
+-+    token = StringField(
+-+        "2FA Code",
+-+        validators=[DataRequired(), Length(min=6, max=6)],
+-+        description="Enter the 2FA code from your authenticator app"
+-+    )
+-+    submit = SubmitField("Enable 2FA")
+-diff --git a/models/__init__.py b/models/__init__.py
+-index e69de29..b3a79fb 100644
+---- a/models/__init__.py
+-+++ b/models/__init__.py
+-@@ -0,0 +1,16 @@
+-+from sqlalchemy import MetaData
+-+from sqlalchemy.orm import DeclarativeBase
+-+
+-+
+-+# ---------- Naming convention (stable Alembic diffs)
+-+naming_convention = {
+-+    "ix": "ix_%(table_name)s_%(column_0_N_name)s",
+-+    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
+-+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+-+    "fk": "fk_%(table_name)s_%(column_0_N_name)s_%(referred_table_name)s",
+-+    "pk": "pk_%(table_name)s",
+-+}
+-+
+-+
+-+class Base(DeclarativeBase):
+-+    metadata = MetaData(naming_convention=naming_convention)
+-diff --git a/models/sql/__init__.py b/models/sql/__init__.py
+-index e2d51c8..5b6a382 100644
+---- a/models/sql/__init__.py
+-+++ b/models/sql/__init__.py
+-@@ -7,7 +7,9 @@ from .base import (User,
+-                    DeletedUser,
+-                    TwoFactorCredential,
+-                    TwoFAMethod,
+--                   Address
+-+                   Address,
+-+                   ensure_postgres_extensions,
+-+                   search_posts
+-                    )
+- 
+- __all__ = [
+-@@ -20,5 +22,7 @@ __all__ = [
+-     "DeletedUser",
+-     "TwoFactorCredential",
+-     "TwoFAMethod",
+--    "Address"
+-+    "Address",
+-+    "ensure_postgres_extensions",
+-+    "search_posts"
+- ]
+-diff --git a/models/sql/base.py b/models/sql/base.py
+-index 1117867..6527ac9 100644
+---- a/models/sql/base.py
+-+++ b/models/sql/base.py
+-@@ -34,18 +34,7 @@ from sqlalchemy.dialects.postgresql import CITEXT, JSONB, TSVECTOR
+- from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+- from sqlalchemy import Computed
+- 
+--# ---------- Naming convention (stable Alembic diffs)
+--naming_convention = {
+--    "ix": "ix_%(table_name)s_%(column_0_N_name)s",
+--    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
+--    "ck": "ck_%(table_name)s_%(constraint_name)s",
+--    "fk": "fk_%(table_name)s_%(column_0_N_name)s_%(referred_table_name)s",
+--    "pk": "pk_%(table_name)s",
+--}
+--
+--
+--class Base(DeclarativeBase):
+--    metadata = MetaData(naming_convention=naming_convention)
+-+from models import Base
+- 
+- 
+- # ---------- Mixins
+-@@ -60,7 +49,6 @@ class TimestampMixin:
+-         nullable=False,
+-     )
+- 
+--
+- # ---------- Role bits (bit flags)
+- class RoleBits(IntFlag):
+-     MEMBER = auto()  # 1
+-@@ -91,6 +79,10 @@ class User(UserMixin, TimestampMixin, Base):
+- 
+-     __table_args__ = (
+-         Index("ix_users_active", "is_active"),
+-+        dict(
+-+            schema="auth",
+-+            comment="User accounts with roles, 2FA, sessions, tokens, and related info",
+-+        )
+-     )
+- 
+-     # convenience helpers
+-@@ -129,7 +121,7 @@ class Address(TimestampMixin, Base):
+- 
+-     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+-     user_id: Mapped[int] = mapped_column(
+--        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+-+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
+-     )
+- 
+-     # Minimal, normalized enough for India-first; extensible globally
+-@@ -155,6 +147,10 @@ class Address(TimestampMixin, Base):
+-         ),
+-         Index("ix_addresses_user", "user_id"),
+-         Index("ix_addresses_postal", "postal_code"),
+-+        dict(
+-+            schema="auth",
+-+            comment="User addresses; multiple per user, one primary",
+-+        )
+-     )
+- 
+- 
+-@@ -164,7 +160,7 @@ class TwoFactorCredential(TimestampMixin, Base):
+- 
+-     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+-     user_id: Mapped[int] = mapped_column(
+--        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+-+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
+-     )
+-     method: Mapped[TwoFAMethod] = mapped_column(SQLEnum(TwoFAMethod, name="twofa_method"), nullable=False)
+- 
+-@@ -192,9 +188,12 @@ class TwoFactorCredential(TimestampMixin, Base):
+- 
+-     __table_args__ = (
+-         # A user can have multiple 2FA methods; but only one active per method if you wish—enforce with partial unique
+--        Index("ux_twofa_user_method_enabled", "user_id", "method",
+--              unique=True, postgresql_where=text("enabled = true")),
+-+        Index("ux_twofa_user_method_enabled", "user_id", "method", unique=True, postgresql_where=text("enabled = true and verified_at is not null")),
+-         Index("ix_twofa_user", "user_id"),
+-+        dict(
+-+            schema="auth",
+-+            comment="User two-factor authentication credentials (TOTP, SMS, Email)",
+-+        )
+-     )
+- 
+- 
+-@@ -204,7 +203,7 @@ class UserSession(TimestampMixin, Base):
+- 
+-     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+-     user_id: Mapped[int] = mapped_column(
+--        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+-+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
+-     )
+- 
+-     # Store only a hash of refresh token/server session id
+-@@ -223,6 +222,10 @@ class UserSession(TimestampMixin, Base):
+-     __table_args__ = (
+-         Index("ix_sessions_user", "user_id"),
+-         Index("ix_sessions_expires", "expires_at"),
+-+        dict(
+-+            schema="auth",
+-+            comment="User sessions or refresh tokens; one active per device/browser",
+-+        )
+-     )
+- 
+- 
+-@@ -232,7 +235,7 @@ class UserToken(TimestampMixin, Base):
+- 
+-     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+-     user_id: Mapped[int] = mapped_column(
+--        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+-+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
+-     )
+- 
+-     purpose: Mapped[TokenPurpose] = mapped_column(SQLEnum(TokenPurpose, name="user_token_purpose"), nullable=False)
+-@@ -251,6 +254,10 @@ class UserToken(TimestampMixin, Base):
+-         Index("ix_usertokens_user", "user_id"),
+-         Index("ix_usertokens_purpose", "purpose"),
+-         Index("ix_usertokens_expires", "expires_at"),
+-+        dict(
+-+            schema="auth",
+-+            comment="Short-lived user tokens for email verification, password reset, etc.",
+-+        )
+-     )
+- 
+- 
+-@@ -282,6 +289,10 @@ class DeletedUser(TimestampMixin, Base):
+-     __table_args__ = (
+-         Index("ix_deleted_users_email", "email"),
+-         Index("ix_deleted_users_deleted_at", "deleted_at"),
+-+        dict(
+-+            schema="auth",
+-+            comment="Archive of deleted users for audit/compliance; minimal PII only",
+-+        )
+-     )
+- 
+- 
+-@@ -307,7 +318,7 @@ class BlogPost(TimestampMixin, Base):
+-     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+- 
+-     # author
+--    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+-+    author_id: Mapped[int] = mapped_column(ForeignKey("auth.users.id", ondelete="SET NULL"), nullable=True)
+-     author: Mapped[Optional[User]] = relationship(back_populates="posts")
+- 
+-     # Postgres generated column for full-text search
+-@@ -325,6 +336,10 @@ class BlogPost(TimestampMixin, Base):
+-         # quick listings
+-         Index("ix_blog_posts_published", "is_published", "published_at"),
+-         CheckConstraint("char_length(slug) >= 3", name="slug_min_len"),
+-+        dict(
+-+            schema="content",
+-+            comment="Blog posts or articles with markdown content, author, publish state, and full-text search",
+-+        )
+-     )
+- 
+-     def __repr__(self) -> str:
+-diff --git a/services/blog.py b/services/blog.py
+-index d22f347..131097e 100644
+---- a/services/blog.py
+-+++ b/services/blog.py
+-@@ -42,8 +42,6 @@ def register_blog(
+- 
+-     title = meta.pop("title")
+- 
+--    print()
+--
+-     post = BlogPost(
+-         slug=slug,
+-         title=title,
+-diff --git a/services/user.py b/services/user.py
+-index 87a45ce..d7e5e1a 100644
+---- a/services/user.py
+-+++ b/services/user.py
+-@@ -1,21 +1,21 @@
+- from __future__ import annotations
+- 
+--from typing import Optional, Dict, Any
+--from sqlalchemy.orm import Session
+-+import hashlib
+-+import secrets
+-+import string
+-+from datetime import datetime, timezone, timedelta
+-+from typing import Dict, Any
+-+from typing import Tuple, List, Optional
+-+
+-+import pyotp
+-+from flask import request, g
+- from sqlalchemy import select
+- from sqlalchemy.exc import IntegrityError
+-+from sqlalchemy.orm import Session
+- from werkzeug.security import generate_password_hash, check_password_hash
+--from flask import current_app
+-+
+- from forms.user import LoginForm
+- from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential
+--import pyotp
+--import qrcode
+--import secrets
+--import string
+--from typing import Tuple, List
+--from datetime import datetime, timezone, timedelta
+--import secrets, hashlib
+--from flask import request, g
+- from utilities import LOGGER
+- 
+- 
+-@@ -91,6 +91,8 @@ def get_user(db: Session, *, form: LoginForm) -> Optional[User]:
+-     )
+-     if has_totp:
+-         if not totp_code or not validate_totp_or_recovery(db, user, totp_code):
+-+            LOGGER.warning("2FA required but not provided or invalid for user id=%s email=%s code=%s", user.id, email,
+-+                           totp_code)
+-             return None
+-         LOGGER.info("2FA verified for user id=%s email=%s", user.id, email)
+- 
+-@@ -108,50 +110,101 @@ def get_user(db: Session, *, form: LoginForm) -> Optional[User]:
+-     return user
+- 
+- 
+-+def _user_exists(db: Session, email: str) -> bool:
+-+    exists = db.scalar(select(User.id).where(User.email == email))
+-+    return bool(exists)
+-+
+-+
+- def _generate_recovery_codes(count: int = 10, length: int = 8) -> List[str]:
+-     alphabet = string.ascii_uppercase + string.digits
+-     return [''.join(secrets.choice(alphabet) for _ in range(length)) for _ in range(count)]
+- 
+- 
+--def setup_totp(db: Session, user: User, recovery_count: int = 10) -> Tuple[str, List[str]]:
+-+def setup_totp(
+-+        db: Session,
+-+        user: "User",
+-+        reuse_secret: Optional[str] = None,
+-+        recovery_count: int = 10
+-+) -> Tuple[str, str, List[str]]:
+-     """
+--    Create and persist a TOTP credential for `user`.
+--    Returns (provisioning_uri, plain_recovery_codes).
+--    NOTE: Does NOT return the secret. Caller can render QR from URI.
+-+    Ensure a single *pending* TOTP credential exists for `user`, optionally reusing/rotating the secret.
+-+
+-+    Returns:
+-+        (provisioning_uri, secret_b32, plain_recovery_codes)
+-+
+-+    Notes:
+-+    - Will raise ValueError("TOTP already enabled") if a verified TOTP exists.
+-+    - If reusing an existing pending secret and not rotating, returns [] for recovery codes.
+-+    - Caller must NOT expose the secret or plain codes to clients.
+-     """
+-     if user is None:
+-         raise ValueError("user_not_found")
+- 
+--    # Enforce single enabled TOTP per user (if you have a partial-unique idx)
+--    existing = db.scalar(
+--        select(TwoFactorCredential)
+--        .where(TwoFactorCredential.user_id == user.id,
+--               TwoFactorCredential.method == TwoFAMethod.TOTP,
+--               TwoFactorCredential.enabled == True)  # noqa: E712
+-+    # 1) Hard stop if user already has a verified TOTP
+-+    existing_verified = db.scalar(
+-+        select(TwoFactorCredential).where(
+-+            TwoFactorCredential.user_id == user.id,
+-+            TwoFactorCredential.method == TwoFAMethod.TOTP,
+-+            TwoFactorCredential.enabled.is_(True),
+-+            TwoFactorCredential.verified_at.isnot(None),  # verified
+-+        )
+-     )
+--    if existing:
+-+    if existing_verified:
+-         raise ValueError("TOTP already enabled")
+- 
+--    totp_secret = pyotp.random_base32()
+--    plain_codes = _generate_recovery_codes(recovery_count)
+--    hashed_codes = [generate_password_hash(c) for c in plain_codes]
+--
+--    cred = TwoFactorCredential(
+--        user_id=user.id,  # link to user
+--        method=TwoFAMethod.TOTP,
+--        totp_secret_b32=totp_secret,
+--        backup_codes_hashes=hashed_codes,
+--        enabled=True,
+--        verified_at=None,
+--        label="Authenticator App",
+-+    # 2) Look for a pending (enabled, not yet verified) TOTP
+-+    pending = db.scalar(
+-+        select(TwoFactorCredential).where(
+-+            TwoFactorCredential.user_id == user.id,
+-+            TwoFactorCredential.method == TwoFAMethod.TOTP,
+-+            TwoFactorCredential.enabled.is_(True),
+-+            TwoFactorCredential.verified_at.is_(None),  # pending
+-+        )
+-     )
+--    db.add(cred)
+--    db.flush()  # persist cred.id; not strictly needed but good to surface errors now
+- 
+--    provisioning_uri = pyotp.TOTP(totp_secret).provisioning_uri(
+-+    # helpers
+-+    def _new_codes(n: int) -> tuple[list[str], list[str]]:
+-+        plain = _generate_recovery_codes(n)
+-+        hashed = [generate_password_hash(c) for c in plain]
+-+        return plain, hashed
+-+
+-+    plain_codes: List[str] = []
+-+
+-+    if pending:
+-+        # Reuse existing pending credential
+-+        if reuse_secret:
+-+            # rotate secret and regen codes
+-+            pending.totp_secret_b32 = reuse_secret
+-+            plain_codes, hashed = _new_codes(recovery_count)
+-+            pending.backup_codes_hashes = hashed
+-+        else:
+-+            # keep current secret; do not regenerate codes
+-+            plain_codes = []
+-+        secret_b32 = pending.totp_secret_b32
+-+
+-+    else:
+-+        # 3) No pending cred -> create one
+-+        secret_b32 = reuse_secret or pyotp.random_base32()
+-+        plain_codes, hashed = _new_codes(recovery_count)
+-+        pending = TwoFactorCredential(
+-+            user_id=user.id,
+-+            method=TwoFAMethod.TOTP,
+-+            totp_secret_b32=secret_b32,
+-+            backup_codes_hashes=hashed,
+-+            enabled=True,
+-+            verified_at=None,
+-+            label="Authenticator App",
+-+        )
+-+        db.add(pending)
+-+
+-+    db.flush()  # ensure pending.id is assigned and constraints checked
+-+
+-+    # 4) Build otpauth URI from the (reused or new) secret
+-+    provisioning_uri = pyotp.TOTP(secret_b32).provisioning_uri(
+-         user.email, issuer_name="Bodhgriha"
+-     )
+--    return provisioning_uri, plain_codes
+-+
+-+    return provisioning_uri, secret_b32, plain_codes
+- 
+- 
+- def _resolve_user(db: Session, *, email: str) -> Optional[User]:
+-@@ -161,6 +214,20 @@ def _resolve_user(db: Session, *, email: str) -> Optional[User]:
+-     return user
+- 
+- 
+-+def _verify_totp(db: Session, user: User, secret: str) -> None:
+-+    # update verified_at if successful
+-+    cred = db.scalar(
+-+        select(TwoFactorCredential)
+-+        .where(TwoFactorCredential.user_id == user.id,
+-+               TwoFactorCredential.totp_secret_b32 == secret,
+-+               TwoFactorCredential.method == TwoFAMethod.TOTP,
+-+               TwoFactorCredential.enabled == True)  # noqa: E712
+-+    )
+-+
+-+    cred.verified_at = datetime.now(timezone.utc)
+-+    db.flush()
+-+
+-+
+- def validate_totp_or_recovery(db: Session, user: User, code: str) -> bool:
+-     cred = db.scalar(
+-         select(TwoFactorCredential)
+-@@ -290,49 +357,3 @@ def reset_password(db: Session, email: str, old_password: str, new_password: str
+-         raise ValueError("incorrect_password")
+- 
+-     forced_update_password(db, user, new_password)
+--
+--
+--
+--if __name__ == "__main__":
+--    from core.db import uow, init_db
+--
+--    init_db()
+--
+--    with uow() as db:
+--        try:
+--            email = "gorakshakar.a@gmail.com"
+--            # add_user(
+--            #     db,
+--            #     email=email,
+--            #     password="StrongPassword123!",
+--            #     first_name="Utkarsha",
+--            #     last_name="Ajgoanakar",
+--            #     role_bits=RoleBits.ADMIN | RoleBits.MEMBER,  # Admin
+--            # )
+--
+--            # user = _resolve_user(db, email=email)
+--            # provisioning_uri, plain_codes = setup_totp(db, user)
+--            #
+--            # qr = qrcode.make(provisioning_uri)
+--            # qr.show()  # Display the QR code for scanning
+--
+--            # totp_code = input("Enter TOTP code: ")
+--            # if validate_totp_or_recovery(db, user, totp_code):
+--            #     print("TOTP code is valid.")
+--            # else:
+--            #     print("Invalid TOTP code.")
+--            user = _resolve_user(db, email=email)
+--            forced_update_password(db, user, "open")
+--
+--
+--            CODE = input("Enter TOTP code: ")
+--            form = type('LoginForm', (object,), {"email": None, "password": None, "totp_code": None, "remember_me": None})  # Mocking form
+--            form.email = type('obj', (object,), {'data': email})  # Mocking form data
+--            form.password = type('obj', (object,), {'data': "open"})  # Replace with actual password
+--            form.totp_code = type('obj', (object,), {'data': CODE})  # Replace with actual TOTP code if needed
+--            form.remember_me = type('obj', (object,), {'data': True})  # or False
+--
+--            user = get_user(db, form=form)
+--
+--        except ValueError as ve:
+--            print("Error:", ve)
+-diff --git a/static/favicon.png b/static/favicon.png
+-deleted file mode 100644
+-index e28a837..0000000
+-Binary files a/static/favicon.png and /dev/null differ
+-diff --git a/templates/admin/register_blog_form.html b/templates/admin/register_blog_form.html
+-index 759c156..c84d7ad 100644
+---- a/templates/admin/register_blog_form.html
+-+++ b/templates/admin/register_blog_form.html
+-@@ -1,34 +1,31 @@
+- {% extends "base.html" %}
+-+{% from "ui/macros/form.html" import render_form %}
+- 
+- {% block title %}Register Blog{% endblock %}
+- 
+- {% block content %}
+--    <h1>Register Blog</h1>
+-+    <video autoplay muted loop playsinline
+-+           class="fixed inset-0 w-full h-full object-cover -z-10 max-h-screen">
+-+        <source src="{{ url_for('static', filename='videos/blog-register.mov') }}" type="video/mp4">
+-+        <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
+-+        Your browser does not support the video tag.
+-+    </video>
+- 
+--    <form method="post" action="{{ url_for('blog_admin.upload_blog') }}" enctype="multipart/form-data">
+--        {{ form.hidden_tag() }}
+-+    <div class="max-w-xl mx-auto mt-20 rounded-xl py-40">
+-+        <div class="bg-white/20 backdrop-blur rounded-2xl p-8">
+-+            {{ render_form(form,
+-+                    action=url_for('blog.upload_blog'),
+-+                    method='POST',
+-+                    submit_label='Upload Blog',
+-+                    field_order=['md_file','publish'],
+-+                    help_texts={
+-+                        'md_file': 'Upload a Markdown (.md) file for your blog post.',
+-+                        'publish': 'Check to publish immediately after upload.'
+-+                    },
+-+                    submit_classes='w-full inline-flex items-center justify-center rounded-md px-4 py-2 bg-[#0c5741aa] hover:bg-[#0c5741] text-white',
+-+                    grid_classes='grid grid-cols-1 sm:grid-cols-1 gap-4'
+-+                ) }}
+- 
+--        <div>
+--            <label for="{{ form.md_file.id }}">{{ form.md_file.label.text }}</label>
+--            {{ form.md_file }}
+--            {% if form.md_file.description %}
+--                <small>{{ form.md_file.description }}</small>
+--            {% endif %}
+--            {% for e in form.md_file.errors %}
+--                <p>{{ e }}</p>
+--            {% endfor %}
+-         </div>
+--
+--        <div>
+--            {{ form.publish }}
+--            <label for="{{ form.publish.id }}">{{ form.publish.label.text }}</label>
+--            {% for e in form.publish.errors %}
+--                <p>{{ e }}</p>
+--            {% endfor %}
+--        </div>
+--
+--        <div>
+--            {{ form.submit }}
+--        </div>
+--    </form>
+-+    </div>
+- {% endblock %}
+-\ No newline at end of file
+-diff --git a/templates/base.html b/templates/base.html
+-index 33ec8d8..1a4a199 100644
+---- a/templates/base.html
+-+++ b/templates/base.html
+-@@ -2,44 +2,116 @@
+- <html lang="en">
+- <head>
+-     <meta charset="utf-8">
+--    <title>{% block title %}My Site{% endblock %}</title>
+-+    <title>{% block title %}{{ page_title|default('My Site') }}{% endblock %}</title>
+-     <meta name="viewport" content="width=device-width, initial-scale=1">
+- 
+--    {# Place to inject extra <head> content like stylesheets #}
+-+    {# --- SEO basics --- #}
+-+    <meta name="description"
+-+          content="{% block description %}{{ page_description|default('A minimal blog platform') }}{% endblock %}">
+-+    <meta name="robots" content="{{ robots|default('index, follow') }}">
+-+    <link rel="canonical" href="{{ canonical_url|default(request.url) }}">
+-+
+-+    {# --- Favicons / PWA --- #}
+-+    <link rel="icon" type="image/png" href="{{ url_for('favicon') }}">
+-+    <link rel="manifest" href="{{ manifest_url|default('/manifest.json') }}">
+-+    <meta name="theme-color" content="{{ theme_color|default('#ffffff') }}">
+-+
+-+    {# --- Open Graph / Twitter --- #}
+-+    <meta property="og:site_name" content="{{ config.SITE_NAME|default('My Site') }}">
+-+    <meta property="og:title" content="{{ og_title|default(page_title|default('My Site')) }}">
+-+    <meta property="og:description"
+-+          content="{{ og_description|default(page_description|default('A minimal blog platform')) }}">
+-+    <meta property="og:type" content="{{ og_type|default('website') }}">
+-+    <meta property="og:url" content="{{ og_url|default(canonical_url|default(request.url)) }}">
+-+    {% if og_image %}
+-+        <meta property="og:image" content="{{ og_image }}">
+-+    {% endif %}
+-+    <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image') }}">
+-+    <meta name="twitter:title" content="{{ twitter_title|default(og_title|default(page_title|default('My Site'))) }}">
+-+    <meta name="twitter:description"
+-+          content="{{ twitter_description|default(og_description|default(page_description|default('A minimal blog platform'))) }}">
+-+    {% if twitter_image %}
+-+        <meta name="twitter:image" content="{{ twitter_image }}">
+-+    {% endif %}
+-+    {% if twitter_site %}
+-+        <meta name="twitter:site" content="{{ twitter_site }}">
+-+    {% endif %}
+-+
+-+    {# --- Preconnects (safe defaults) --- #}
+-+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+-+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+-+
+-+    {# --- Tailwind (CDN, zero-build) --- #}
+-+    <script src="https://cdn.tailwindcss.com"></script>
+-+    {% if tailwind_config %}
+-+        <script>
+-+            // Optional runtime Tailwind config (override via `tailwind_config` dict -> tojson)
+-+            tailwind.config = {{ tailwind_config|tojson }};
+-+        </script>
+-+    {% endif %}
+-+
+-+    {# --- HTMX (core + optional extras) --- #}
+-+    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="" crossorigin="anonymous"></script>
+-+    <script src="https://unpkg.com/alpinejs" defer></script>
+-+    {% if use_hyperscript %}
+-+        <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+-+    {% endif %}
+-+
+-+    {# --- CSP nonce-friendly slot for page-specific scripts/styles --- #}
+-+    {% if inline_head_css %}
+-+        <style>{{ inline_head_css|safe }}</style>
+-+    {% endif %}
+-+
+-+    {# --- JSON-LD (Website + optional Breadcrumbs) --- #}
+-+    <script type="application/ld+json">
+-+        {
+-+          "@context": "https://schema.org",
+-+          "@type": "WebSite",
+-+          "name": {{ config.SITE_NAME|default('My Site')|tojson }},
+-+    "url": {{ (canonical_url|default(request.url))|tojson }},
+-+        {% if search_url %}
+-+            "potentialAction": {
+-+              "@type": "SearchAction",
+-+              "target": {{ (search_url ~ "?q={search_term_string}")|tojson }},
+-+      "query-input": "required name=search_term_string"
+-+    }
+-+        {% endif %}
+-+        }
+-+    </script>
+-+
+-+    {# Existing block for additional head content from child templates #}
+-     {% block head %}{% endblock %}
+- </head>
+--<body>
+--<header>
+--    <nav>
+--        <a href="{{ url_for('user.new_user') }}">New User</a> |
+--        <a href="{{ url_for('blog_admin.upload_blog') }}">Register Blog</a>
+--        {% if current_user.is_authenticated %}
+--            | <a href="#">Logout ({{ current_user.email }})</a>
+--        {% else %}
+--            | <a href="{{ url_for('user.login') }}">Login</a>
+--        {% endif %}
+--    </nav>
+--</header>
+-+<body class="text-gray-900 min-h-screen flex flex-col pt-14">
+-+<!-- Fixed Navbar -->
+-+{% include 'partials/navbar.html' %}
+- 
+--<main>
+--    {% with messages = get_flashed_messages(with_categories=true) %}
+--        {% if messages %}
+--            <ul>
+-+<main class="flex-1 container mx-auto">
+-+    {% import 'partials/toast.html' as ui %}
+-+
+-+    <div id="toast-container"
+-+         class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 sm:gap-3
+-+            w-full sm:w-auto pointer-events-none">
+-+        {% with messages = get_flashed_messages(with_categories=true) %}
+-+            {% if messages %}
+-                 {% for category, message in messages %}
+--                    <li><strong>{{ category.title() }}:</strong> {{ message }}</li>
+-+                    {{ ui.toast(message, category, auto_ms=2000) }}
+-                 {% endfor %}
+--            </ul>
+--        {% endif %}
+--    {% endwith %}
+-+            {% endif %}
+-+        {% endwith %}
+-+    </div>
+- 
+--    {% block content %}{% endblock %}
+- </main>
+- 
+--<footer>
+--    <p>&copy; {{ config.SITE_NAME if config.SITE_NAME else "My Site" }} {{ current_year|default(2025) }}</p>
+--</footer>
+-+{% block content %}{% endblock %}
+-+
+-+{% include 'partials/footer.html' %}
+- 
+- {# Place to inject scripts at the end of body #}
+-+
+-+    
+- {% block scripts %}{% endblock %}
+-+
+-+<script src="{{ url_for('static', filename='js/navbar.js') }}" defer></script>
+- </body>
+- </html>
+-\ No newline at end of file
+-diff --git a/templates/user/login.html b/templates/user/login.html
+-index d1373df..57fccba 100644
+---- a/templates/user/login.html
+-+++ b/templates/user/login.html
+-@@ -1,42 +1,77 @@
+--{# templates/admin/users/form.html #}
+-+{% extends "base.html" %}
+- 
+--<form method="post" action="{{ action }}">
+--    {{ form.hidden_tag() }}
+-+{% block title %}Log In - Bodhgriha{% endblock %}
+- 
+--    <div>
+--        <label for="{{ form.email.id }}">{{ form.email.label.text }}</label>
+--        {{ form.email }}
+--        {% for e in form.email.errors %}
+--            <p>{{ e }}</p>
+--        {% endfor %}
+--    </div>
+-+{% block content %}
+-+    <!-- Background video sitting directly under the body -->
+-+    <video autoplay muted loop playsinline
+-+           class="fixed inset-0 w-full h-full object-cover -z-10 max-h-screen">
+-+        <source src="{{ url_for('static', filename='videos/login-backdrop.mp4') }}" type="video/mp4">
+-+        <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
+-+        Your browser does not support the video tag.
+-+    </video>
+- 
+--    <div>
+--        <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
+--        {{ form.password }}
+--        {% for e in form.password.errors %}
+--            <p>{{ e }}</p>
+--        {% endfor %}
+--    </div>
+-+    <!-- Optional overlay for readability -->
+-+    <div class="fixed inset-0 bg-black/50 -z-10"></div>
+- 
+--    <div>
+--        <!-- totp code -->
+--        <label for="{{ form.totp_code.id }}">{{ form.totp_code.label.text }}</label>
+--        {{ form.totp_code }}
+--        {% for e in form.totp_code.errors %}
+--            <p>{{ e }}</p>
+--        {% endfor %}
+--    </div>
+-+    <!-- Login form container -->
+-+    <div class="relative flex flex-col items-center justify-center min-h-[80vh] px-4 py-20">
+- 
+--    <div>
+--        {{ form.remember_me }}
+--        <label for="{{ form.remember_me.id }}">{{ form.remember_me.label.text }}</label>
+--        {% for e in form.remember_me.errors %}
+--            <p>{{ e }}</p>
+--        {% endfor %}
+--    </div>
+-+        <!-- Welcome text -->
+-+        <div class="text-center mb-8">
+-+            <h1 class="text-3xl md:text-4xl font-bold text-white drop-shadow-lg mb-2">
+-+                Welcome Back
+-+            </h1>
+-+            <p class="text-lg text-white/90">
+-+                Sign in to your Bodhgriha account
+-+            </p>
+-+        </div>
+-+
+-+        <!-- Login form using macro -->
+-+        <div class="w-full max-w-md">
+-+            <div class="bg-black/40 backdrop-blur rounded-2xl p-8">
+-+                {% from "ui/macros/form.html" import render_form %}
+-+                {{ render_form(form,
+-+                    action=url_for('auth.login'),
+-+                    method='POST',
+-+                    submit_label='Log In',
+-+                    field_order=['email','password','remember_me','totp_code'],
+-+                    help_texts={
+-+                        'totp_code': 'Enter the 6-digit code from your authenticator app (if enabled).'
+-+                    },
+-+                    extra_attrs={
+-+                        'email':     {'autocomplete':'email', 'placeholder':'you@example.com', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+-+                        'password':  {'autocomplete':'current-password', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+-+                        'totp_code': {'inputmode':'numeric', 'pattern':'\\d{6}', 'maxlength':'6', 'placeholder':'123456', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'}
+-+                    },
+-+                    submit_classes='w-full inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-medium bg-[#0c5741] text-white hover:bg-[#0c5741dd] focus:outline-none focus:ring-2 focus:ring-blue-500',
+-+                    grid_classes='grid grid-cols-1 sm:grid-cols-1 gap-4'
+-+                ) }}
+-+                
+-+                <!-- Forgot Password Link -->
+-+                <div class="mt-4 text-center">
+-+                    <a href="#" class="text-sm text-white/70 hover:text-white transition">
+-+                        Forgot your password?
+-+                    </a>
+-+                </div>
+-+            </div>
+-+            
+-+            <!-- Create Account Link -->
+-+            <div class="mt-6 text-center">
+-+                <p class="text-white/70 text-sm">
+-+                    Don't have an account? 
+-+                    <a href="{{ url_for('auth.register') }}" class="text-emerald-400 hover:text-emerald-300 font-semibold transition">
+-+                        Create Account
+-+                    </a>
+-+                </p>
+-+            </div>
+-+        </div>
+- 
+--    <div>
+--        {{ form.submit }}
+-+        <!-- Additional links -->
+-+        <div class="mt-8 text-center">
+-+            <a href="{{ url_for('index') }}" class="text-white/70 hover:text-white transition text-sm">
+-+                ← Back to Home
+-+            </a>
+-+        </div>
+-     </div>
+--</form>
+-\ No newline at end of file
+-+{% endblock %}
+-\ No newline at end of file
+-diff --git a/utilities/connection.py b/utilities/connection.py
+-index 0f0e810..a7cc73f 100644
+---- a/utilities/connection.py
+-+++ b/utilities/connection.py
+-@@ -4,6 +4,7 @@ from sqlalchemy.exc import ResourceClosedError
+- import pandas as pd
+- from pandas import DataFrame
+- 
+-+
+- class EngineManager:
+-     _instances: dict[str, Engine] = dict(
+-         BODHGRIHA=create_engine("postgresql+psycopg2://admin:changeme@localhost:5434/postgres")
+-diff --git a/views/__init__.py b/views/__init__.py
+-index 486aa08..308a96f 100644
+---- a/views/__init__.py
+-+++ b/views/__init__.py
+-@@ -8,10 +8,18 @@ def register_views(app: Flask) -> None:
+-     Attach all blueprints to the Flask app.
+-     Keep this as the single entry point for route registration.
+-     """
+--    # Admin
+--    from .admin.user import bp as user_bp
+--    app.register_blueprint(user_bp, url_prefix="/admin/user")
+--
+-     # Example: blog blueprint
+--    from .admin.blog import bp as blog_bp
+--    app.register_blueprint(blog_bp, url_prefix="/admin/blog")
+-+    from .blog.base import bp as blog_bp
+-+    app.register_blueprint(blog_bp, url_prefix="/blog")
+-+
+-+    # Auth
+-+    from .auth.user import bp as auth_bp
+-+    app.register_blueprint(auth_bp, url_prefix="/auth")
+-+
+-+    # UI
+-+    from .ui.base import bp as ui_bp
+-+    app.register_blueprint(ui_bp, url_prefix="/ui")
+-+
+-+    # Admin - Users
+-+    from .admin.school import bp as school_bp
+-+    app.register_blueprint(school_bp, url_prefix="/admin/schools")
+-diff --git a/views/admin/blog.py b/views/admin/blog.py
+-deleted file mode 100644
+-index dfe2574..0000000
+---- a/views/admin/blog.py
+-+++ /dev/null
+-@@ -1,26 +0,0 @@
+--from flask import Blueprint, render_template, request, redirect, url_for, flash
+--from forms.blog import BlogUploadForm
+--from core.db import uow
+--from services.blog import register_blog
+--from utilities.parsers.mdown import parse_markdown
+--
+--bp = Blueprint("blog_admin", __name__)
+--
+--
+--@bp.route("/upload", methods=["GET", "POST"])
+--def upload_blog():
+--    form = BlogUploadForm()
+--    if form.validate_on_submit():
+--        f = form.md_file.data
+--        body_md = f.read().decode("utf-8", errors="replace")
+--
+--        metadata, _, _ = parse_markdown(body_md)
+--        slug = metadata.pop("slug")
+--
+--        with uow() as db:
+--            register_blog(db, slug=slug, body_md=body_md)  # attach author if you have it
+--
+--        flash("Blog uploaded.", "success")
+--        return redirect(url_for("blog_admin.upload_blog"))
+--
+--    return render_template("admin/register_blog_form.html", form=form)
+-diff --git a/views/admin/user.py b/views/admin/user.py
+-deleted file mode 100644
+-index 919c2cf..0000000
+---- a/views/admin/user.py
+-+++ /dev/null
+-@@ -1,41 +0,0 @@
+--from flask import Blueprint, render_template, request, redirect, url_for, flash
+--from flask_login import login_user, logout_user, login_required, current_user, login_manager
+--from forms.user import UserForm, LoginForm
+--from services.user import get_user
+--from core.db import uow
+--from services.user import add_user
+--
+--bp = Blueprint("user", __name__)
+--
+--
+--@bp.route("/new", methods=["GET", "POST"])
+--def new_user():
+--    form = UserForm()
+--    if form.validate_on_submit():
+--        with uow() as db:
+--            add_user(
+--                db,
+--                email=form.email.data,
+--                password=form.password.data,
+--                first_name=form.first_name.data,
+--                last_name=form.last_name.data,
+--            )
+--        flash("User created successfully.", "success")
+--    return render_template("admin/register_users_form.html", form=form)
+--
+--
+--@bp.route('/login', methods=["GET", "POST"])
+--def login():
+--    form = LoginForm()
+--    if form.validate_on_submit():
+--        with uow() as db:
+--            user = get_user(db, form=form)
+--            if user:
+--                # Example: Set session variable for logged-in user
+--                login_user(user, remember=form.remember_me.data)
+--                flash("Login successful.", "success")
+--                return render_template("base.html")  # Replace "dashboard" with your desired route
+--            else:
+--                flash("Invalid email or password.", "danger")
+--                render_template("user/login.html", form=form)
+--    return render_template("user/login.html", form=form)
+-\ No newline at end of file
 diff --git a/app.py b/app.py
-index 601eaad..0e87938 100644
+index 0e87938..1e6eff0 100644
 --- a/app.py
 +++ b/app.py
-@@ -10,12 +10,23 @@ from views import register_views
+@@ -4,13 +4,12 @@ from wtforms import StringField, SubmitField
+ from wtforms.validators import DataRequired, Length
+ from flask_talisman import Talisman
+ import os
+-from core.db import init_db
+ from models.sql import User, BlogPost
++from core.db import uow, init_db
+ from views import register_views
++from core.enum_seed import seed_enums
  from flask_login import LoginManager
  from sqlalchemy import select
- from core.db import uow
-+from core.enum_seed import seed_enums
-+from utilities.logger import configure_logging
-+from services.base import _context, _invert_navbar_colors
+-from core.db import uow
+-from core.enum_seed import seed_enums
+ from utilities.logger import configure_logging
+ from services.base import _context, _invert_navbar_colors
  
+@@ -59,6 +58,7 @@ def create_app():
+             "https://unpkg.com",
+             "unsafe-inline",  # needed for HTMX
+             # "'unsafe-eval'",  # only if you set tailwind.config in-page at runtime
++            "unsafe-inline"
+         ],
  
- def create_app():
-     app = Flask(__name__)
-+    app.config.logger = configure_logging(app.config.get("LOG_LEVEL", "DEBUG"))
-+    app.config['STATIC_FOLDER'] = 'static'
- 
--    init_db()
-+    init_db()  # create tables if not exist (dev only; use Alembic in prod)
-+    app.config.logger.info("Database initialized.")
-+
-+    app.config.logger.info("Seeding enumeration tables...")
-+    with uow() as db:
-+        seed_enums(db)
-+    app.config.logger.info("Enumeration tables seeded.")
- 
-     app.config.update(
-         SECRET_KEY=os.environ.get("SECRET_KEY", "dev-not-secure"),
-@@ -23,6 +34,7 @@ def create_app():
-         SESSION_COOKIE_HTTPONLY=True,  # not accessible to JS
-         SESSION_COOKIE_SAMESITE="Lax",  # CSRF mitigation for cross-site
-         WTF_CSRF_TIME_LIMIT=None,  # optional, disable token timeout
-+        SITE_NAME="Bodhgriha"
-     )
- 
-     # --- CSRF protection
-@@ -30,17 +42,75 @@ def create_app():
- 
-     # --- Content Security Policy (no unsafe-inline; use nonce)
-     csp = {
-+        # --- Defaults & hardening ---
-         "default-src": "'self'",
--        "script-src": ["'self'"],  # nonced scripts will be allowed via talisman nonce helper
--        "style-src": ["'self'", "'unsafe-inline'"],  # keep inline styles off if you can; Tailwind often OK
--        "img-src": ["'self'", "data:"],  # add your CDN domains if needed
--        "font-src": ["'self'"],
--        "connect-src": ["'self'"],  # add API domains if needed
--        "frame-ancestors": "'none'",  # disallow embedding
-         "base-uri": "'self'",
-         "form-action": "'self'",
-+        "frame-ancestors": "'none'",
-         "object-src": "'none'",
--        "upgrade-insecure-requests": "",  # auto-upgrade http->https
-+        "script-src-attr": "'none'",
-+        "upgrade-insecure-requests": "",
-+
-+        # --- Scripts (Tailwind CDN + HTMX) ---
-+        "script-src": [
-+            "'self'",
-+            # nonced inline scripts allowed via Talisman (nonce injected)
-+            "https://cdn.tailwindcss.com",
-+            "https://unpkg.com",
-+            "unsafe-inline",  # needed for HTMX
-+            # "'unsafe-eval'",  # only if you set tailwind.config in-page at runtime
-+        ],
-+
-+        # --- Styles ---
-+        "style-src": [
-+            "'self'",
-+            "'unsafe-inline'",  # Tailwind CDN injects <style>
-+            "https:",
-+            "data:",
-+            "https://fonts.googleapis.com",  # drop if not using Google Fonts
-+        ],
-+
-+        # --- Images (QR/data URIs ok) ---
-+        "img-src": [
-+            "'self'",
-+            "data:",
-+            "blob:",
-+            "https:",
-+        ],
-+
-+        # --- VIDEO/AUDIO (add this for your background video) ---
-+        "media-src": [
-+            "'self'",
-+            "https:",  # keep if you might host video on a CDN later
-+            "data:",  # rare, but harmless
-+            "blob:",  # needed only if you ever use blob URLs
-+        ],
-+
-+        # --- Fonts ---
-+        "font-src": [
-+            "'self'",
-+            "https://fonts.gstatic.com",  # drop if not using Google Fonts
-+            "data:",
-+        ],
-+
-+        # --- XHR / SSE / fetch (HTMX) ---
-+        "connect-src": [
-+            "'self'",
-+            "https://maps.googleapis.com",
-+            "https://maps.gstatic.com",
-+        ],
-+
-+        # --- Frames (for <iframe> embeds like Google Maps) ---
-+        "frame-src": [
-+            "'self'",
-+            "https://www.google.com",
-+            "https://maps.google.com",
-+            "https://www.google.com/maps",
-+        ],
-+
-+        # (Optional) lock these harder if you’re not using them:
-+        # "frame-src": "'none'",
-+        # "worker-src": ["'self'", "blob:"],
-     }
- 
-     # --- Talisman security headers
-@@ -66,7 +136,7 @@ def create_app():
- 
-     # --- Login manager
-     login_manager = LoginManager()
--    login_manager.login_view = "user.login"
-+    login_manager.login_view = "auth.login"
-     login_manager.init_app(app)
- 
-     @login_manager.user_loader
-@@ -77,20 +147,39 @@ def create_app():
-     register_views(app)
- 
-     @app.route('/')
--    def hello():
--        return render_template('base.html')
-+    def index():
-+        from utilities.navbar_loader import get_navbar_context
-+        return render_template(
-+            "index.html",
-+            **_context()
-+        )
- 
-     @app.route('/favicon.ico')
-     def favicon():
--        return send_from_directory(
--            os.path.join(app.root_path, 'static'),
--            'favicon.png',
--            mimetype='image/png'
-+        return send_from_directory(app.static_folder, 'icons/icon.png', mimetype='image/png')
-+
-+    @app.route('/manifest.json')
-+    def manifest():
-+        return send_from_directory(app.static_folder, 'manifest.json')
-+
-+    @app.route('/robots.txt')
-+    def robots_txt():
-+        return send_from_directory(app.static_folder, 'robots.txt', mimetype='text/plain')
-+
-+    @app.route('/about-us')
-+    def about_us():
-+        return render_template(
-+            "about.html",
-+            **_invert_navbar_colors(_context())
-         )
- 
-+    @app.route('/testimonials', methods=['GET', 'POST'])
-+    def testimonials():
-+        # This route can be used for testimonials management if needed
-+        # For now, redirect to home page
-+        return redirect(url_for('index'))
-+
-     return app
- 
- 
--if __name__ == "__main__":
--    app = create_app()
--    app.run(debug=True, host="0.0.0.0", port=9090, ssl_context="adhoc")
-+app = create_app()
-\ No newline at end of file
-diff --git a/core/db.py b/core/db.py
-index 67d74f2..2d6f5f3 100644
---- a/core/db.py
-+++ b/core/db.py
-@@ -1,10 +1,12 @@
- # core/db.py
--from sqlalchemy import create_engine
--from sqlalchemy.orm import sessionmaker
--from models.sql.base import Base, ensure_postgres_extensions
--from utilities.connection import EngineManager
- from contextlib import contextmanager
- 
-+from sqlalchemy import text
-+from sqlalchemy.orm import sessionmaker
-+
-+from models import Base
-+from models.sql import ensure_postgres_extensions
-+from utilities.connection import EngineManager
- 
- ENGINE = EngineManager.get('BODHGRIHA')
- SessionLocal = sessionmaker(bind=ENGINE, expire_on_commit=False, autoflush=False)
-@@ -19,13 +21,20 @@ def uow(readonly: bool = False):
-     db = SessionLocal()
-     try:
-         if readonly:
--            yield db
--            db.rollback()  # discard any accidental writes
-+            trans = db.begin()
-+            try:
-+                db.execute(text("SET TRANSACTION READ ONLY"))
-+                yield db
-+                trans.commit()  # ✅ commit, not rollback
-+            except:
-+                trans.rollback()
-+                raise
-         else:
--            with db.begin():  # begin/commit/rollback handled here
-+            with db.begin():
-                 yield db
-     except:
--        db.rollback()
-+        if db.in_transaction():
-+            db.rollback()
-         raise
-     finally:
-         db.close()
-@@ -36,5 +45,27 @@ def init_db() -> None:
-     Dev/test convenience: create extensions and tables.
-     Do NOT call in production. Use Alembic instead.
-     """
-+    # create schemas
-+    from sqlalchemy import text
-+
-+    with ENGINE.connect() as conn:
-+        SCHEMAS = [
-+            'core',
-+            'courses',
-+            'registrations',
-+            'payments',
-+            'admin',
-+            'auth',
-+            'audit',
-+            'notifications',
-+            'reports',
-+            'analytics',
-+            'content',
-+        ]
-+        for schema in SCHEMAS:
-+            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema};"))
-+
-+        conn.commit()
-+
-     ensure_postgres_extensions(ENGINE)
-     Base.metadata.create_all(ENGINE)
-diff --git a/forms/user.py b/forms/user.py
-index c9b65cb..e17f6cf 100644
---- a/forms/user.py
-+++ b/forms/user.py
-@@ -101,3 +101,14 @@ class ForgotPasswordForm(FlaskForm):
-         validators=[DataRequired(), Email(), Length(max=255)],
-     )
-     submit = SubmitField("Send Reset Link")
-+
-+
-+class RegisterTOTPForm(FlaskForm):
-+    """Form to register TOTP 2FA."""
-+
-+    token = StringField(
-+        "2FA Code",
-+        validators=[DataRequired(), Length(min=6, max=6)],
-+        description="Enter the 2FA code from your authenticator app"
-+    )
-+    submit = SubmitField("Enable 2FA")
-diff --git a/models/__init__.py b/models/__init__.py
-index e69de29..b3a79fb 100644
---- a/models/__init__.py
-+++ b/models/__init__.py
-@@ -0,0 +1,16 @@
-+from sqlalchemy import MetaData
-+from sqlalchemy.orm import DeclarativeBase
-+
-+
-+# ---------- Naming convention (stable Alembic diffs)
-+naming_convention = {
-+    "ix": "ix_%(table_name)s_%(column_0_N_name)s",
-+    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
-+    "ck": "ck_%(table_name)s_%(constraint_name)s",
-+    "fk": "fk_%(table_name)s_%(column_0_N_name)s_%(referred_table_name)s",
-+    "pk": "pk_%(table_name)s",
-+}
-+
-+
-+class Base(DeclarativeBase):
-+    metadata = MetaData(naming_convention=naming_convention)
+         # --- Styles ---
 diff --git a/models/sql/__init__.py b/models/sql/__init__.py
-index e2d51c8..5b6a382 100644
+index 5b6a382..6151d4f 100644
 --- a/models/sql/__init__.py
 +++ b/models/sql/__init__.py
-@@ -7,7 +7,9 @@ from .base import (User,
-                    DeletedUser,
-                    TwoFactorCredential,
-                    TwoFAMethod,
--                   Address
-+                   Address,
-+                   ensure_postgres_extensions,
-+                   search_posts
+@@ -12,6 +12,8 @@ from .base import (User,
+                    search_posts
                     )
  
++from .testimonials import Testimonial, TestimonialMeta
++
  __all__ = [
-@@ -20,5 +22,7 @@ __all__ = [
-     "DeletedUser",
-     "TwoFactorCredential",
+     "User",
+     "BlogPost",
+@@ -24,5 +26,7 @@ __all__ = [
      "TwoFAMethod",
--    "Address"
-+    "Address",
-+    "ensure_postgres_extensions",
-+    "search_posts"
+     "Address",
+     "ensure_postgres_extensions",
+-    "search_posts"
++    "search_posts",
++    "Testimonial",
++    "TestimonialMeta"
  ]
 diff --git a/models/sql/base.py b/models/sql/base.py
-index 1117867..6527ac9 100644
+index 6527ac9..bd9e0d4 100644
 --- a/models/sql/base.py
 +++ b/models/sql/base.py
-@@ -34,18 +34,7 @@ from sqlalchemy.dialects.postgresql import CITEXT, JSONB, TSVECTOR
- from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
- from sqlalchemy import Computed
- 
--# ---------- Naming convention (stable Alembic diffs)
--naming_convention = {
--    "ix": "ix_%(table_name)s_%(column_0_N_name)s",
--    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
--    "ck": "ck_%(table_name)s_%(constraint_name)s",
--    "fk": "fk_%(table_name)s_%(column_0_N_name)s_%(referred_table_name)s",
--    "pk": "pk_%(table_name)s",
--}
--
--
--class Base(DeclarativeBase):
--    metadata = MetaData(naming_convention=naming_convention)
-+from models import Base
- 
- 
- # ---------- Mixins
-@@ -60,7 +49,6 @@ class TimestampMixin:
+@@ -49,6 +49,7 @@ class TimestampMixin:
          nullable=False,
      )
  
--
++
  # ---------- Role bits (bit flags)
  class RoleBits(IntFlag):
      MEMBER = auto()  # 1
-@@ -91,6 +79,10 @@ class User(UserMixin, TimestampMixin, Base):
- 
-     __table_args__ = (
-         Index("ix_users_active", "is_active"),
-+        dict(
-+            schema="auth",
-+            comment="User accounts with roles, 2FA, sessions, tokens, and related info",
-+        )
-     )
- 
-     # convenience helpers
-@@ -129,7 +121,7 @@ class Address(TimestampMixin, Base):
- 
-     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-     user_id: Mapped[int] = mapped_column(
--        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
-     )
- 
-     # Minimal, normalized enough for India-first; extensible globally
-@@ -155,6 +147,10 @@ class Address(TimestampMixin, Base):
-         ),
-         Index("ix_addresses_user", "user_id"),
-         Index("ix_addresses_postal", "postal_code"),
-+        dict(
-+            schema="auth",
-+            comment="User addresses; multiple per user, one primary",
-+        )
-     )
+diff --git a/services/base.py b/services/base.py
+index c3372fe..7fba198 100644
+--- a/services/base.py
++++ b/services/base.py
+@@ -3,9 +3,8 @@ from utilities.about_loader import get_about_context
+ from flask import request, url_for, render_template
  
  
-@@ -164,7 +160,7 @@ class TwoFactorCredential(TimestampMixin, Base):
- 
-     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-     user_id: Mapped[int] = mapped_column(
--        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
-     )
-     method: Mapped[TwoFAMethod] = mapped_column(SQLEnum(TwoFAMethod, name="twofa_method"), nullable=False)
- 
-@@ -192,9 +188,12 @@ class TwoFactorCredential(TimestampMixin, Base):
- 
-     __table_args__ = (
-         # A user can have multiple 2FA methods; but only one active per method if you wish—enforce with partial unique
--        Index("ux_twofa_user_method_enabled", "user_id", "method",
--              unique=True, postgresql_where=text("enabled = true")),
-+        Index("ux_twofa_user_method_enabled", "user_id", "method", unique=True, postgresql_where=text("enabled = true and verified_at is not null")),
-         Index("ix_twofa_user", "user_id"),
-+        dict(
-+            schema="auth",
-+            comment="User two-factor authentication credentials (TOTP, SMS, Email)",
-+        )
-     )
- 
- 
-@@ -204,7 +203,7 @@ class UserSession(TimestampMixin, Base):
- 
-     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-     user_id: Mapped[int] = mapped_column(
--        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
-     )
- 
-     # Store only a hash of refresh token/server session id
-@@ -223,6 +222,10 @@ class UserSession(TimestampMixin, Base):
-     __table_args__ = (
-         Index("ix_sessions_user", "user_id"),
-         Index("ix_sessions_expires", "expires_at"),
-+        dict(
-+            schema="auth",
-+            comment="User sessions or refresh tokens; one active per device/browser",
-+        )
-     )
- 
- 
-@@ -232,7 +235,7 @@ class UserToken(TimestampMixin, Base):
- 
-     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-     user_id: Mapped[int] = mapped_column(
--        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
-     )
- 
-     purpose: Mapped[TokenPurpose] = mapped_column(SQLEnum(TokenPurpose, name="user_token_purpose"), nullable=False)
-@@ -251,6 +254,10 @@ class UserToken(TimestampMixin, Base):
-         Index("ix_usertokens_user", "user_id"),
-         Index("ix_usertokens_purpose", "purpose"),
-         Index("ix_usertokens_expires", "expires_at"),
-+        dict(
-+            schema="auth",
-+            comment="Short-lived user tokens for email verification, password reset, etc.",
-+        )
-     )
- 
- 
-@@ -282,6 +289,10 @@ class DeletedUser(TimestampMixin, Base):
-     __table_args__ = (
-         Index("ix_deleted_users_email", "email"),
-         Index("ix_deleted_users_deleted_at", "deleted_at"),
-+        dict(
-+            schema="auth",
-+            comment="Archive of deleted users for audit/compliance; minimal PII only",
-+        )
-     )
- 
- 
-@@ -307,7 +318,7 @@ class BlogPost(TimestampMixin, Base):
-     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
- 
-     # author
--    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-+    author_id: Mapped[int] = mapped_column(ForeignKey("auth.users.id", ondelete="SET NULL"), nullable=True)
-     author: Mapped[Optional[User]] = relationship(back_populates="posts")
- 
-     # Postgres generated column for full-text search
-@@ -325,6 +336,10 @@ class BlogPost(TimestampMixin, Base):
-         # quick listings
-         Index("ix_blog_posts_published", "is_published", "published_at"),
-         CheckConstraint("char_length(slug) >= 3", name="slug_min_len"),
-+        dict(
-+            schema="content",
-+            comment="Blog posts or articles with markdown content, author, publish state, and full-text search",
-+        )
-     )
- 
-     def __repr__(self) -> str:
-diff --git a/services/blog.py b/services/blog.py
-index d22f347..131097e 100644
---- a/services/blog.py
-+++ b/services/blog.py
-@@ -42,8 +42,6 @@ def register_blog(
- 
-     title = meta.pop("title")
- 
--    print()
 -
-     post = BlogPost(
-         slug=slug,
-         title=title,
-diff --git a/services/user.py b/services/user.py
-index 87a45ce..d7e5e1a 100644
---- a/services/user.py
-+++ b/services/user.py
-@@ -1,21 +1,21 @@
- from __future__ import annotations
- 
--from typing import Optional, Dict, Any
--from sqlalchemy.orm import Session
-+import hashlib
-+import secrets
-+import string
-+from datetime import datetime, timezone, timedelta
-+from typing import Dict, Any
-+from typing import Tuple, List, Optional
-+
-+import pyotp
-+from flask import request, g
- from sqlalchemy import select
- from sqlalchemy.exc import IntegrityError
-+from sqlalchemy.orm import Session
- from werkzeug.security import generate_password_hash, check_password_hash
--from flask import current_app
-+
- from forms.user import LoginForm
- from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential
--import pyotp
--import qrcode
--import secrets
--import string
--from typing import Tuple, List
--from datetime import datetime, timezone, timedelta
--import secrets, hashlib
--from flask import request, g
- from utilities import LOGGER
+ def _invert_navbar_colors(context):
+-    v="relative inline-flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-black/90 list-none cursor-pointer transition-colors duration-300 ease-out hover:text-[#0c5741] after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-0 after:bg-[#0c5741] after:transition-all after:duration-300 after:ease-out hover:after:w-full"
++    v = "relative inline-flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-black/90 list-none cursor-pointer transition-colors duration-300 ease-out hover:text-[#0c5741] after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-0 after:bg-[#0c5741] after:transition-all after:duration-300 after:ease-out hover:after:w-full"
+     context['navbar_config']['styles']['desktop']['simple_link'] = v
+     context['navbar_config']['styles']['desktop']['auth_link'] = v
+     context['navbar_config']['styles']['desktop']['mega_menu_summary'] = v
+@@ -14,7 +13,6 @@ def _invert_navbar_colors(context):
+     return context
  
  
-@@ -91,6 +91,8 @@ def get_user(db: Session, *, form: LoginForm) -> Optional[User]:
-     )
-     if has_totp:
-         if not totp_code or not validate_totp_or_recovery(db, user, totp_code):
-+            LOGGER.warning("2FA required but not provided or invalid for user id=%s email=%s code=%s", user.id, email,
-+                           totp_code)
-             return None
-         LOGGER.info("2FA verified for user id=%s email=%s", user.id, email)
- 
-@@ -108,50 +110,101 @@ def get_user(db: Session, *, form: LoginForm) -> Optional[User]:
-     return user
- 
- 
-+def _user_exists(db: Session, email: str) -> bool:
-+    exists = db.scalar(select(User.id).where(User.email == email))
-+    return bool(exists)
-+
-+
- def _generate_recovery_codes(count: int = 10, length: int = 8) -> List[str]:
-     alphabet = string.ascii_uppercase + string.digits
-     return [''.join(secrets.choice(alphabet) for _ in range(length)) for _ in range(count)]
- 
- 
--def setup_totp(db: Session, user: User, recovery_count: int = 10) -> Tuple[str, List[str]]:
-+def setup_totp(
-+        db: Session,
-+        user: "User",
-+        reuse_secret: Optional[str] = None,
-+        recovery_count: int = 10
-+) -> Tuple[str, str, List[str]]:
-     """
--    Create and persist a TOTP credential for `user`.
--    Returns (provisioning_uri, plain_recovery_codes).
--    NOTE: Does NOT return the secret. Caller can render QR from URI.
-+    Ensure a single *pending* TOTP credential exists for `user`, optionally reusing/rotating the secret.
-+
-+    Returns:
-+        (provisioning_uri, secret_b32, plain_recovery_codes)
-+
-+    Notes:
-+    - Will raise ValueError("TOTP already enabled") if a verified TOTP exists.
-+    - If reusing an existing pending secret and not rotating, returns [] for recovery codes.
-+    - Caller must NOT expose the secret or plain codes to clients.
-     """
-     if user is None:
-         raise ValueError("user_not_found")
- 
--    # Enforce single enabled TOTP per user (if you have a partial-unique idx)
--    existing = db.scalar(
--        select(TwoFactorCredential)
--        .where(TwoFactorCredential.user_id == user.id,
--               TwoFactorCredential.method == TwoFAMethod.TOTP,
--               TwoFactorCredential.enabled == True)  # noqa: E712
-+    # 1) Hard stop if user already has a verified TOTP
-+    existing_verified = db.scalar(
-+        select(TwoFactorCredential).where(
-+            TwoFactorCredential.user_id == user.id,
-+            TwoFactorCredential.method == TwoFAMethod.TOTP,
-+            TwoFactorCredential.enabled.is_(True),
-+            TwoFactorCredential.verified_at.isnot(None),  # verified
-+        )
-     )
--    if existing:
-+    if existing_verified:
-         raise ValueError("TOTP already enabled")
- 
--    totp_secret = pyotp.random_base32()
--    plain_codes = _generate_recovery_codes(recovery_count)
--    hashed_codes = [generate_password_hash(c) for c in plain_codes]
 -
--    cred = TwoFactorCredential(
--        user_id=user.id,  # link to user
--        method=TwoFAMethod.TOTP,
--        totp_secret_b32=totp_secret,
--        backup_codes_hashes=hashed_codes,
--        enabled=True,
--        verified_at=None,
--        label="Authenticator App",
-+    # 2) Look for a pending (enabled, not yet verified) TOTP
-+    pending = db.scalar(
-+        select(TwoFactorCredential).where(
-+            TwoFactorCredential.user_id == user.id,
-+            TwoFactorCredential.method == TwoFAMethod.TOTP,
-+            TwoFactorCredential.enabled.is_(True),
-+            TwoFactorCredential.verified_at.is_(None),  # pending
-+        )
-     )
--    db.add(cred)
--    db.flush()  # persist cred.id; not strictly needed but good to surface errors now
- 
--    provisioning_uri = pyotp.TOTP(totp_secret).provisioning_uri(
-+    # helpers
-+    def _new_codes(n: int) -> tuple[list[str], list[str]]:
-+        plain = _generate_recovery_codes(n)
-+        hashed = [generate_password_hash(c) for c in plain]
-+        return plain, hashed
-+
-+    plain_codes: List[str] = []
-+
-+    if pending:
-+        # Reuse existing pending credential
-+        if reuse_secret:
-+            # rotate secret and regen codes
-+            pending.totp_secret_b32 = reuse_secret
-+            plain_codes, hashed = _new_codes(recovery_count)
-+            pending.backup_codes_hashes = hashed
-+        else:
-+            # keep current secret; do not regenerate codes
-+            plain_codes = []
-+        secret_b32 = pending.totp_secret_b32
-+
-+    else:
-+        # 3) No pending cred -> create one
-+        secret_b32 = reuse_secret or pyotp.random_base32()
-+        plain_codes, hashed = _new_codes(recovery_count)
-+        pending = TwoFactorCredential(
-+            user_id=user.id,
-+            method=TwoFAMethod.TOTP,
-+            totp_secret_b32=secret_b32,
-+            backup_codes_hashes=hashed,
-+            enabled=True,
-+            verified_at=None,
-+            label="Authenticator App",
-+        )
-+        db.add(pending)
-+
-+    db.flush()  # ensure pending.id is assigned and constraints checked
-+
-+    # 4) Build otpauth URI from the (reused or new) secret
-+    provisioning_uri = pyotp.TOTP(secret_b32).provisioning_uri(
-         user.email, issuer_name="Bodhgriha"
-     )
--    return provisioning_uri, plain_codes
-+
-+    return provisioning_uri, secret_b32, plain_codes
- 
- 
- def _resolve_user(db: Session, *, email: str) -> Optional[User]:
-@@ -161,6 +214,20 @@ def _resolve_user(db: Session, *, email: str) -> Optional[User]:
-     return user
- 
- 
-+def _verify_totp(db: Session, user: User, secret: str) -> None:
-+    # update verified_at if successful
-+    cred = db.scalar(
-+        select(TwoFactorCredential)
-+        .where(TwoFactorCredential.user_id == user.id,
-+               TwoFactorCredential.totp_secret_b32 == secret,
-+               TwoFactorCredential.method == TwoFAMethod.TOTP,
-+               TwoFactorCredential.enabled == True)  # noqa: E712
-+    )
-+
-+    cred.verified_at = datetime.now(timezone.utc)
-+    db.flush()
-+
-+
- def validate_totp_or_recovery(db: Session, user: User, code: str) -> bool:
-     cred = db.scalar(
-         select(TwoFactorCredential)
-@@ -290,49 +357,3 @@ def reset_password(db: Session, email: str, old_password: str, new_password: str
-         raise ValueError("incorrect_password")
- 
-     forced_update_password(db, user, new_password)
--
--
--
--if __name__ == "__main__":
--    from core.db import uow, init_db
--
--    init_db()
--
--    with uow() as db:
--        try:
--            email = "gorakshakar.a@gmail.com"
--            # add_user(
--            #     db,
--            #     email=email,
--            #     password="StrongPassword123!",
--            #     first_name="Utkarsha",
--            #     last_name="Ajgoanakar",
--            #     role_bits=RoleBits.ADMIN | RoleBits.MEMBER,  # Admin
--            # )
--
--            # user = _resolve_user(db, email=email)
--            # provisioning_uri, plain_codes = setup_totp(db, user)
--            #
--            # qr = qrcode.make(provisioning_uri)
--            # qr.show()  # Display the QR code for scanning
--
--            # totp_code = input("Enter TOTP code: ")
--            # if validate_totp_or_recovery(db, user, totp_code):
--            #     print("TOTP code is valid.")
--            # else:
--            #     print("Invalid TOTP code.")
--            user = _resolve_user(db, email=email)
--            forced_update_password(db, user, "open")
--
--
--            CODE = input("Enter TOTP code: ")
--            form = type('LoginForm', (object,), {"email": None, "password": None, "totp_code": None, "remember_me": None})  # Mocking form
--            form.email = type('obj', (object,), {'data': email})  # Mocking form data
--            form.password = type('obj', (object,), {'data': "open"})  # Replace with actual password
--            form.totp_code = type('obj', (object,), {'data': CODE})  # Replace with actual TOTP code if needed
--            form.remember_me = type('obj', (object,), {'data': True})  # or False
--
--            user = get_user(db, form=form)
--
--        except ValueError as ve:
--            print("Error:", ve)
-diff --git a/static/favicon.png b/static/favicon.png
-deleted file mode 100644
-index e28a837..0000000
-Binary files a/static/favicon.png and /dev/null differ
-diff --git a/templates/admin/register_blog_form.html b/templates/admin/register_blog_form.html
-index 759c156..c84d7ad 100644
---- a/templates/admin/register_blog_form.html
-+++ b/templates/admin/register_blog_form.html
-@@ -1,34 +1,31 @@
- {% extends "base.html" %}
-+{% from "ui/macros/form.html" import render_form %}
- 
- {% block title %}Register Blog{% endblock %}
- 
- {% block content %}
--    <h1>Register Blog</h1>
-+    <video autoplay muted loop playsinline
-+           class="fixed inset-0 w-full h-full object-cover -z-10 max-h-screen">
-+        <source src="{{ url_for('static', filename='videos/blog-register.mov') }}" type="video/mp4">
-+        <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
-+        Your browser does not support the video tag.
-+    </video>
- 
--    <form method="post" action="{{ url_for('blog_admin.upload_blog') }}" enctype="multipart/form-data">
--        {{ form.hidden_tag() }}
-+    <div class="max-w-xl mx-auto mt-20 rounded-xl py-40">
-+        <div class="bg-white/20 backdrop-blur rounded-2xl p-8">
-+            {{ render_form(form,
-+                    action=url_for('blog.upload_blog'),
-+                    method='POST',
-+                    submit_label='Upload Blog',
-+                    field_order=['md_file','publish'],
-+                    help_texts={
-+                        'md_file': 'Upload a Markdown (.md) file for your blog post.',
-+                        'publish': 'Check to publish immediately after upload.'
-+                    },
-+                    submit_classes='w-full inline-flex items-center justify-center rounded-md px-4 py-2 bg-[#0c5741aa] hover:bg-[#0c5741] text-white',
-+                    grid_classes='grid grid-cols-1 sm:grid-cols-1 gap-4'
-+                ) }}
- 
--        <div>
--            <label for="{{ form.md_file.id }}">{{ form.md_file.label.text }}</label>
--            {{ form.md_file }}
--            {% if form.md_file.description %}
--                <small>{{ form.md_file.description }}</small>
--            {% endif %}
--            {% for e in form.md_file.errors %}
--                <p>{{ e }}</p>
--            {% endfor %}
-         </div>
--
--        <div>
--            {{ form.publish }}
--            <label for="{{ form.publish.id }}">{{ form.publish.label.text }}</label>
--            {% for e in form.publish.errors %}
--                <p>{{ e }}</p>
--            {% endfor %}
--        </div>
--
--        <div>
--            {{ form.submit }}
--        </div>
--    </form>
-+    </div>
- {% endblock %}
+ def _context():
+     return dict(
+         page_title="Yoga Teacher Training – Bodhgriha",
+@@ -36,4 +34,4 @@ def _context():
+         brand_primary="#0c5741",
+         **get_navbar_context(),
+         **get_about_context()
+-    )
 \ No newline at end of file
++    )
+diff --git a/static/manifest.json b/static/manifest.json
+index d9cf8f7..b5d2837 100644
+--- a/static/manifest.json
++++ b/static/manifest.json
+@@ -11,12 +11,12 @@
+   "theme_color": "#0c5741",
+   "icons": [
+     {
+-      "src": "icons/icon.png",
++      "src": "static/icons/icon.png",
+       "type": "image/png",
+       "sizes": "192x192"
+     },
+     {
+-      "src": "icons/icon.png",
++      "src": "static/icons/icon.png",
+       "type": "image/png",
+       "sizes": "512x512"
+     }
+diff --git a/templates/about.html b/templates/about.html
+index 54527b7..a5fdf41 100644
+--- a/templates/about.html
++++ b/templates/about.html
+@@ -7,6 +7,7 @@
+ {% set styles = about.styles %}
+ {% set content = about.content %}
+ {% set icons = about_icons %}
++{% set brand_primary = "#0c5741" %}
+ 
+ {% block title %}About Us - Bodhgriha{% endblock %}
+ 
+@@ -123,8 +124,6 @@
+         </div>
+     </section>
+ 
+-    </section>
+-
+     <!-- What Drives Us -->
+     <section class="relative py-20 overflow-hidden">
+         <!-- Background image -->
+@@ -156,81 +155,81 @@
+     <!-- Our Values -->
+     <section class="py-20 bg-gradient-to-br from-emerald-900/40 via-teal-800/40 to-cyan-900/40">
+         <div class="max-w-6xl mx-auto px-6">
+-            <h2 class="text-4xl md:text-5xl font-bold text-center text-white mb-6">
++            <h2 class="text-4xl md:text-5xl font-bold text-center text-[{{ brand_primary }}] mb-6">
+                 Our Values
+             </h2>
+-            <div class="w-24 h-1 bg-white mx-auto mb-16"></div>
++            <div class="w-24 h-1 bg-[{{ brand_primary }}] mx-auto mb-16"></div>
+             
+             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all">
++                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
+                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
+-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                         </svg>
+                     </div>
+-                    <h3 class="text-2xl font-bold text-white mb-4">Authenticity</h3>
+-                    <p class="text-white/90 leading-relaxed">
++                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Authenticity</h3>
++                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
+                         We honor yoga's roots and share programs grounded in genuine teaching.
+                     </p>
+                 </div>
+ 
+-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all">
++                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
+                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
+-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                         </svg>
+                     </div>
+-                    <h3 class="text-2xl font-bold text-white mb-4">Accessibility</h3>
+-                    <p class="text-white/90 leading-relaxed">
++                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Accessibility</h3>
++                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
+                         We believe yoga should be available to everyone, everywhere.
+                     </p>
+                 </div>
+ 
+-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all">
++                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
+                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
+-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                         </svg>
+                     </div>
+-                    <h3 class="text-2xl font-bold text-white mb-4">Community</h3>
+-                    <p class="text-white/90 leading-relaxed">
++                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Community</h3>
++                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
+                         Our platform is built on connection—between students, teachers, and schools.
+                     </p>
+                 </div>
+ 
+-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all">
++                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
+                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
+-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                         </svg>
+                     </div>
+-                    <h3 class="text-2xl font-bold text-white mb-4">Transparency</h3>
+-                    <p class="text-white/90 leading-relaxed">
++                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Transparency</h3>
++                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
+                         We value honesty, clarity, and trust in every listing and interaction.
+                     </p>
+                 </div>
+ 
+-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all md:col-span-2 lg:col-span-1">
++                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
+                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
+-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                         </svg>
+                     </div>
+-                    <h3 class="text-2xl font-bold text-white mb-4">Growth & Balance</h3>
+-                    <p class="text-white/90 leading-relaxed">
++                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Growth & Balance</h3>
++                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
+                         We see yoga not just as exercise, but as a way of life that brings harmony to mind, body, and spirit.
+                     </p>
+                 </div>
+ 
+-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all md:col-span-2 lg:col-span-1">
++                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
+                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
+-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                         </svg>
+                     </div>
+-                    <h3 class="text-2xl font-bold text-white mb-4">Compassion & Respect</h3>
+-                    <p class="text-white/90 leading-relaxed">
++                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Compassion & Respect</h3>
++                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
+                         We approach every interaction with kindness and honor the diverse paths each individual takes on their yoga journey.
+                     </p>
+                 </div>
 diff --git a/templates/base.html b/templates/base.html
-index 33ec8d8..1a4a199 100644
+index 1a4a199..63e07c6 100644
 --- a/templates/base.html
 +++ b/templates/base.html
-@@ -2,44 +2,116 @@
- <html lang="en">
- <head>
-     <meta charset="utf-8">
--    <title>{% block title %}My Site{% endblock %}</title>
-+    <title>{% block title %}{{ page_title|default('My Site') }}{% endblock %}</title>
-     <meta name="viewport" content="width=device-width, initial-scale=1">
+@@ -11,6 +11,49 @@
+     <meta name="robots" content="{{ robots|default('index, follow') }}">
+     <link rel="canonical" href="{{ canonical_url|default(request.url) }}">
  
--    {# Place to inject extra <head> content like stylesheets #}
-+    {# --- SEO basics --- #}
-+    <meta name="description"
-+          content="{% block description %}{{ page_description|default('A minimal blog platform') }}{% endblock %}">
-+    <meta name="robots" content="{{ robots|default('index, follow') }}">
-+    <link rel="canonical" href="{{ canonical_url|default(request.url) }}">
-+
-+    {# --- Favicons / PWA --- #}
-+    <link rel="icon" type="image/png" href="{{ url_for('favicon') }}">
-+    <link rel="manifest" href="{{ manifest_url|default('/manifest.json') }}">
-+    <meta name="theme-color" content="{{ theme_color|default('#ffffff') }}">
-+
-+    {# --- Open Graph / Twitter --- #}
-+    <meta property="og:site_name" content="{{ config.SITE_NAME|default('My Site') }}">
-+    <meta property="og:title" content="{{ og_title|default(page_title|default('My Site')) }}">
-+    <meta property="og:description"
-+          content="{{ og_description|default(page_description|default('A minimal blog platform')) }}">
-+    <meta property="og:type" content="{{ og_type|default('website') }}">
-+    <meta property="og:url" content="{{ og_url|default(canonical_url|default(request.url)) }}">
-+    {% if og_image %}
-+        <meta property="og:image" content="{{ og_image }}">
-+    {% endif %}
-+    <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image') }}">
-+    <meta name="twitter:title" content="{{ twitter_title|default(og_title|default(page_title|default('My Site'))) }}">
-+    <meta name="twitter:description"
-+          content="{{ twitter_description|default(og_description|default(page_description|default('A minimal blog platform'))) }}">
-+    {% if twitter_image %}
-+        <meta name="twitter:image" content="{{ twitter_image }}">
-+    {% endif %}
-+    {% if twitter_site %}
-+        <meta name="twitter:site" content="{{ twitter_site }}">
-+    {% endif %}
-+
-+    {# --- Preconnects (safe defaults) --- #}
-+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
-+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
-+
-+    {# --- Tailwind (CDN, zero-build) --- #}
-+    <script src="https://cdn.tailwindcss.com"></script>
-+    {% if tailwind_config %}
-+        <script>
-+            // Optional runtime Tailwind config (override via `tailwind_config` dict -> tojson)
-+            tailwind.config = {{ tailwind_config|tojson }};
-+        </script>
-+    {% endif %}
-+
-+    {# --- HTMX (core + optional extras) --- #}
-+    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="" crossorigin="anonymous"></script>
-+    <script src="https://unpkg.com/alpinejs" defer></script>
-+    {% if use_hyperscript %}
-+        <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
-+    {% endif %}
-+
-+    {# --- CSP nonce-friendly slot for page-specific scripts/styles --- #}
-+    {% if inline_head_css %}
-+        <style>{{ inline_head_css|safe }}</style>
-+    {% endif %}
-+
-+    {# --- JSON-LD (Website + optional Breadcrumbs) --- #}
-+    <script type="application/ld+json">
-+        {
-+          "@context": "https://schema.org",
-+          "@type": "WebSite",
-+          "name": {{ config.SITE_NAME|default('My Site')|tojson }},
-+    "url": {{ (canonical_url|default(request.url))|tojson }},
-+        {% if search_url %}
-+            "potentialAction": {
-+              "@type": "SearchAction",
-+              "target": {{ (search_url ~ "?q={search_term_string}")|tojson }},
-+      "query-input": "required name=search_term_string"
-+    }
-+        {% endif %}
-+        }
++    {# Passive touchstart shim to minimize scroll-blocking listeners from third-party scripts #}
++    <script>
++      (function() {
++        try {
++          var targets = [window, document];
++          targets.forEach(function(t) {
++            var orig = t.addEventListener;
++            if (!orig || orig.__passiveShim) return;
++            t.addEventListener = function(type, listener, options) {
++              if (type === 'touchstart' && (options === undefined || options === false || (typeof options === 'object' && !('passive' in options)))) {
++                var opts = typeof options === 'object' ? Object.assign({}, options, { passive: true }) : { capture: !!options, passive: true };
++                return orig.call(this, type, listener, opts);
++              }
++              return orig.call(this, type, listener, options);
++            };
++            t.addEventListener.__passiveShim = true;
++          });
++        } catch (e) { /* no-op */ }
++      })();
 +    </script>
 +
-+    {# Existing block for additional head content from child templates #}
-     {% block head %}{% endblock %}
- </head>
--<body>
--<header>
--    <nav>
--        <a href="{{ url_for('user.new_user') }}">New User</a> |
--        <a href="{{ url_for('blog_admin.upload_blog') }}">Register Blog</a>
--        {% if current_user.is_authenticated %}
--            | <a href="#">Logout ({{ current_user.email }})</a>
--        {% else %}
--            | <a href="{{ url_for('user.login') }}">Login</a>
--        {% endif %}
--    </nav>
--</header>
-+<body class="text-gray-900 min-h-screen flex flex-col pt-14">
-+<!-- Fixed Navbar -->
-+{% include 'partials/navbar.html' %}
- 
--<main>
--    {% with messages = get_flashed_messages(with_categories=true) %}
--        {% if messages %}
--            <ul>
-+<main class="flex-1 container mx-auto">
-+    {% import 'partials/toast.html' as ui %}
++    {# Dev-only logger to find non-passive touch listeners #}
++    <script>
++      (function() {
++        try {
++          var isDevHost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(location.hostname);
++          if (!isDevHost) return;
++          var orig = EventTarget.prototype.addEventListener;
++          if (!orig || orig.__logShim) return;
++          EventTarget.prototype.addEventListener = function(type, listener, options) {
++            try {
++              if ((type === 'touchstart' || type === 'touchmove') && (options === undefined || options === false || (typeof options === 'object' && (!('passive' in options) || options.passive === false)))) {
++                var stack = (new Error()).stack;
++                console.warn('[passive-debug]', type, 'non-passive listener added on', this, '\n', stack);
++              }
++            } catch (_) {}
++            return orig.call(this, type, listener, options);
++          };
++          EventTarget.prototype.addEventListener.__logShim = true;
++        } catch (e) { /* no-op */ }
++      })();
++    </script>
 +
-+    <div id="toast-container"
-+         class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 sm:gap-3
-+            w-full sm:w-auto pointer-events-none">
-+        {% with messages = get_flashed_messages(with_categories=true) %}
-+            {% if messages %}
-                 {% for category, message in messages %}
--                    <li><strong>{{ category.title() }}:</strong> {{ message }}</li>
-+                    {{ ui.toast(message, category, auto_ms=2000) }}
-                 {% endfor %}
--            </ul>
--        {% endif %}
--    {% endwith %}
-+            {% endif %}
-+        {% endwith %}
-+    </div>
- 
--    {% block content %}{% endblock %}
- </main>
- 
--<footer>
--    <p>&copy; {{ config.SITE_NAME if config.SITE_NAME else "My Site" }} {{ current_year|default(2025) }}</p>
--</footer>
-+{% block content %}{% endblock %}
-+
-+{% include 'partials/footer.html' %}
- 
- {# Place to inject scripts at the end of body #}
-+
-+    
- {% block scripts %}{% endblock %}
-+
-+<script src="{{ url_for('static', filename='js/navbar.js') }}" defer></script>
- </body>
- </html>
-\ No newline at end of file
-diff --git a/templates/user/login.html b/templates/user/login.html
-index d1373df..57fccba 100644
---- a/templates/user/login.html
-+++ b/templates/user/login.html
-@@ -1,42 +1,77 @@
--{# templates/admin/users/form.html #}
-+{% extends "base.html" %}
- 
--<form method="post" action="{{ action }}">
--    {{ form.hidden_tag() }}
-+{% block title %}Log In - Bodhgriha{% endblock %}
- 
--    <div>
--        <label for="{{ form.email.id }}">{{ form.email.label.text }}</label>
--        {{ form.email }}
--        {% for e in form.email.errors %}
--            <p>{{ e }}</p>
--        {% endfor %}
--    </div>
-+{% block content %}
-+    <!-- Background video sitting directly under the body -->
-+    <video autoplay muted loop playsinline
-+           class="fixed inset-0 w-full h-full object-cover -z-10 max-h-screen">
-+        <source src="{{ url_for('static', filename='videos/login-backdrop.mp4') }}" type="video/mp4">
-+        <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
-+        Your browser does not support the video tag.
-+    </video>
- 
--    <div>
--        <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
--        {{ form.password }}
--        {% for e in form.password.errors %}
--            <p>{{ e }}</p>
--        {% endfor %}
--    </div>
-+    <!-- Optional overlay for readability -->
-+    <div class="fixed inset-0 bg-black/50 -z-10"></div>
- 
--    <div>
--        <!-- totp code -->
--        <label for="{{ form.totp_code.id }}">{{ form.totp_code.label.text }}</label>
--        {{ form.totp_code }}
--        {% for e in form.totp_code.errors %}
--            <p>{{ e }}</p>
--        {% endfor %}
--    </div>
-+    <!-- Login form container -->
-+    <div class="relative flex flex-col items-center justify-center min-h-[80vh] px-4 py-20">
- 
--    <div>
--        {{ form.remember_me }}
--        <label for="{{ form.remember_me.id }}">{{ form.remember_me.label.text }}</label>
--        {% for e in form.remember_me.errors %}
--            <p>{{ e }}</p>
--        {% endfor %}
--    </div>
-+        <!-- Welcome text -->
-+        <div class="text-center mb-8">
-+            <h1 class="text-3xl md:text-4xl font-bold text-white drop-shadow-lg mb-2">
-+                Welcome Back
-+            </h1>
-+            <p class="text-lg text-white/90">
-+                Sign in to your Bodhgriha account
-+            </p>
-+        </div>
-+
-+        <!-- Login form using macro -->
-+        <div class="w-full max-w-md">
-+            <div class="bg-black/40 backdrop-blur rounded-2xl p-8">
-+                {% from "ui/macros/form.html" import render_form %}
-+                {{ render_form(form,
-+                    action=url_for('auth.login'),
-+                    method='POST',
-+                    submit_label='Log In',
-+                    field_order=['email','password','remember_me','totp_code'],
-+                    help_texts={
-+                        'totp_code': 'Enter the 6-digit code from your authenticator app (if enabled).'
-+                    },
-+                    extra_attrs={
-+                        'email':     {'autocomplete':'email', 'placeholder':'you@example.com', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
-+                        'password':  {'autocomplete':'current-password', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
-+                        'totp_code': {'inputmode':'numeric', 'pattern':'\\d{6}', 'maxlength':'6', 'placeholder':'123456', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'}
-+                    },
-+                    submit_classes='w-full inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-medium bg-[#0c5741] text-white hover:bg-[#0c5741dd] focus:outline-none focus:ring-2 focus:ring-blue-500',
-+                    grid_classes='grid grid-cols-1 sm:grid-cols-1 gap-4'
-+                ) }}
-+                
-+                <!-- Forgot Password Link -->
-+                <div class="mt-4 text-center">
-+                    <a href="#" class="text-sm text-white/70 hover:text-white transition">
-+                        Forgot your password?
-+                    </a>
-+                </div>
-+            </div>
-+            
-+            <!-- Create Account Link -->
-+            <div class="mt-6 text-center">
-+                <p class="text-white/70 text-sm">
-+                    Don't have an account? 
-+                    <a href="{{ url_for('auth.register') }}" class="text-emerald-400 hover:text-emerald-300 font-semibold transition">
-+                        Create Account
-+                    </a>
-+                </p>
-+            </div>
-+        </div>
- 
--    <div>
--        {{ form.submit }}
-+        <!-- Additional links -->
-+        <div class="mt-8 text-center">
-+            <a href="{{ url_for('index') }}" class="text-white/70 hover:text-white transition text-sm">
-+                ← Back to Home
-+            </a>
-+        </div>
+     {# --- Favicons / PWA --- #}
+     <link rel="icon" type="image/png" href="{{ url_for('favicon') }}">
+     <link rel="manifest" href="{{ manifest_url|default('/manifest.json') }}">
+diff --git a/templates/partials/footer.html b/templates/partials/footer.html
+index 64f4b08..8374fa8 100644
+--- a/templates/partials/footer.html
++++ b/templates/partials/footer.html
+@@ -6,17 +6,18 @@
+             <!-- Left Half: Map Embedding -->
+             <div class="space-y-4">
+                 <h3 class="text-lg font-semibold tracking-wider">FIND US</h3>
+-                <div class="rounded-lg overflow-hidden border border-white/20 h-64 lg:h-80">
+-                    <iframe
+-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.9476519598093!2d-73.99185492346067!3d40.74117097138558!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c259a9b3117469%3A0xd134e199a405a163!2sEmpire%20State%20Building!5e0!3m2!1sen!2sus!4v1710000000000!5m2!1sen!2sus"
+-                        width="100%"
+-                        height="100%"
+-                        style="border:0;"
+-                        allowfullscreen=""
+-                        loading="lazy"
+-                        referrerpolicy="no-referrer-when-downgrade"
+-                        class="grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+-                    </iframe>
++                <div id="map-container" data-map-src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.9476519598093!2d-73.99185492346067!3d40.74117097138558!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c259a9b3117469%3A0xd134e199a405a163!2sEmpire%20State%20Building!5e0!3m2!1sen!2sus!4v1710000000000!5m2!1sen!2sus" class="rounded-lg overflow-hidden border border-white/20 h-64 lg:h-80 relative group">
++                    <!-- Skeleton placeholder -->
++                    <div class="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 animate-pulse"></div>
++                    <!-- Click overlay -->
++                    <button type="button" class="absolute inset-0 flex items-center justify-center gap-2 bg-black/30 hover:bg-black/40 text-white text-sm font-medium backdrop-blur-sm transition-colors">
++                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.868v4.264a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
++                        </svg>
++                        <span>Load interactive map</span>
++                    </button>
++                    <span class="sr-only">Google Maps placeholder</span>
+                 </div>
+                 <div class="text-sm text-white/70">
+                     <p>{{ config.SITE_NAME if config.SITE_NAME else "Bodhgriha Yoga" }}</p>
+@@ -85,4 +86,34 @@
+             </div>
+         </div>
      </div>
--</form>
-\ No newline at end of file
-+{% endblock %}
-\ No newline at end of file
-diff --git a/utilities/connection.py b/utilities/connection.py
-index 0f0e810..a7cc73f 100644
---- a/utilities/connection.py
-+++ b/utilities/connection.py
-@@ -4,6 +4,7 @@ from sqlalchemy.exc import ResourceClosedError
- import pandas as pd
- from pandas import DataFrame
- 
 +
- class EngineManager:
-     _instances: dict[str, Engine] = dict(
-         BODHGRIHA=create_engine("postgresql+psycopg2://admin:changeme@localhost:5434/postgres")
++    <script>
++    // Click-to-load Google Map to defer third-party listeners until user interaction
++    (function() {
++      var container = document.getElementById('map-container');
++      if (!container) return;
++      var loaded = false;
++      var btn = container.querySelector('button');
++
++      function loadIframe() {
++        if (loaded) return;
++        loaded = true;
++        var src = container.getAttribute('data-map-src');
++        var iframe = document.createElement('iframe');
++        iframe.src = src;
++        iframe.width = '100%';
++        iframe.height = '100%';
++        iframe.style.border = '0';
++        iframe.loading = 'lazy';
++        iframe.referrerPolicy = 'no-referrer-when-downgrade';
++        iframe.allowFullscreen = true;
++        iframe.className = 'w-full h-full grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300';
++        iframe.title = 'Google Maps';
++        container.innerHTML = '';
++        container.appendChild(iframe);
++      }
++
++      if (btn) btn.addEventListener('click', loadIframe, { passive: true });
++    })();
++    </script>
+ </footer>
+diff --git a/templates/partials/testimonials.html b/templates/partials/testimonials.html
+index 78b381d..e69de29 100644
+--- a/templates/partials/testimonials.html
++++ b/templates/partials/testimonials.html
+@@ -1,22 +0,0 @@
+-{% set it = testimonials.items[i] %}
+-<article
+-  id="tst-card"
+-  class="rounded-3xl bg-slate-100 p-8 md:p-10 shadow-sm ring-1 ring-slate-200 animate-[fadeIn_.35s_ease-out]"
+-  hx-get="{{ url_for('ui.view') }}"
+-  hx-target="#tst-card"
+-  hx-swap="outerHTML"
+-  hx-vals='{"i": {{ i }}}'
+->
+-  <div class="mb-4 text-3xl" style="color: {{ brand }};">
+-    <svg class="inline h-8 w-8 opacity-80" viewBox="0 0 24 24" fill="currentColor"><path d="M10 8c0-3.31-2.69-6-6-6v4a2 2 0 0 1 2 2H2v12h8V8Zm12 0c0-3.31-2.69-6-6-6v4a2 2 0 0 1 2 2h-4v12h8V8Z"/></svg>
+-  </div>
+-  <blockquote class="text-2xl md:text-[28px] leading-[1.35] font-semibold text-slate-800">
+-    {{ it.quote }}
+-  </blockquote>
+-  <footer class="mt-6 text-slate-600">
+-    —{{ it.author }}{% if it.suffix %}, {{ it.suffix }}{% endif %}
+-  </footer>
+-
+-  <!-- keep index in DOM so HTMX resubmits it automatically -->
+-  <input type="hidden" name="i" value="{{ i }}">
+-</article>
+\ No newline at end of file
+diff --git a/templates/ui/macros/form.html b/templates/ui/macros/form.html
+index 78917aa..589b5f2 100644
+--- a/templates/ui/macros/form.html
++++ b/templates/ui/macros/form.html
+@@ -157,6 +157,15 @@
+         </fieldset>
+ 
+         {# File #}
++    {% elif field.type == 'MultipleFileField' %}
++        {{ _label(field, required) }}
++        <input type="file" id="{{ field.id }}" name="{{ field.name }}" multiple
++               class="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-gray-700 hover:file:bg-gray-200 {{ 'ring-1 ring-red-500' if has_errors else '' }}"
++               aria-invalid="{{ 'true' if has_errors else 'false' }}"
++                {{ _kv(attrs) }}>
++        {{ _help(field.id, help_text or field.description) }}
++        {{ _errors(field.id, field.errors) }}
++
+     {% elif field.type == 'FileField' %}
+         {{ _label(field, required) }}
+         <input type="file" id="{{ field.id }}" name="{{ field.name }}"
+@@ -215,7 +224,7 @@
+ 
+     {# Auto-enctype if any FileField #}
+     {% if not enctype %}
+-        {% if form | selectattr('type','equalto','FileField') | list %}
++        {% if form | selectattr('type','equalto','FileField') | list or form | selectattr('type','equalto','MultipleFileField') | list %}
+             {% set enctype = 'multipart/form-data' %}
+         {% endif %}
+     {% endif %}
 diff --git a/views/__init__.py b/views/__init__.py
-index 486aa08..308a96f 100644
+index 308a96f..93c3681 100644
 --- a/views/__init__.py
 +++ b/views/__init__.py
-@@ -8,10 +8,18 @@ def register_views(app: Flask) -> None:
-     Attach all blueprints to the Flask app.
-     Keep this as the single entry point for route registration.
-     """
--    # Admin
--    from .admin.user import bp as user_bp
--    app.register_blueprint(user_bp, url_prefix="/admin/user")
--
-     # Example: blog blueprint
--    from .admin.blog import bp as blog_bp
--    app.register_blueprint(blog_bp, url_prefix="/admin/blog")
-+    from .blog.base import bp as blog_bp
-+    app.register_blueprint(blog_bp, url_prefix="/blog")
-+
-+    # Auth
-+    from .auth.user import bp as auth_bp
-+    app.register_blueprint(auth_bp, url_prefix="/auth")
-+
-+    # UI
-+    from .ui.base import bp as ui_bp
-+    app.register_blueprint(ui_bp, url_prefix="/ui")
-+
-+    # Admin - Users
-+    from .admin.school import bp as school_bp
-+    app.register_blueprint(school_bp, url_prefix="/admin/schools")
-diff --git a/views/admin/blog.py b/views/admin/blog.py
-deleted file mode 100644
-index dfe2574..0000000
---- a/views/admin/blog.py
-+++ /dev/null
-@@ -1,26 +0,0 @@
--from flask import Blueprint, render_template, request, redirect, url_for, flash
--from forms.blog import BlogUploadForm
--from core.db import uow
--from services.blog import register_blog
--from utilities.parsers.mdown import parse_markdown
--
--bp = Blueprint("blog_admin", __name__)
--
--
--@bp.route("/upload", methods=["GET", "POST"])
--def upload_blog():
--    form = BlogUploadForm()
--    if form.validate_on_submit():
--        f = form.md_file.data
--        body_md = f.read().decode("utf-8", errors="replace")
--
--        metadata, _, _ = parse_markdown(body_md)
--        slug = metadata.pop("slug")
--
--        with uow() as db:
--            register_blog(db, slug=slug, body_md=body_md)  # attach author if you have it
--
--        flash("Blog uploaded.", "success")
--        return redirect(url_for("blog_admin.upload_blog"))
--
--    return render_template("admin/register_blog_form.html", form=form)
-diff --git a/views/admin/user.py b/views/admin/user.py
-deleted file mode 100644
-index 919c2cf..0000000
---- a/views/admin/user.py
-+++ /dev/null
-@@ -1,41 +0,0 @@
--from flask import Blueprint, render_template, request, redirect, url_for, flash
--from flask_login import login_user, logout_user, login_required, current_user, login_manager
--from forms.user import UserForm, LoginForm
--from services.user import get_user
--from core.db import uow
--from services.user import add_user
--
--bp = Blueprint("user", __name__)
--
--
--@bp.route("/new", methods=["GET", "POST"])
--def new_user():
--    form = UserForm()
--    if form.validate_on_submit():
--        with uow() as db:
--            add_user(
--                db,
--                email=form.email.data,
--                password=form.password.data,
--                first_name=form.first_name.data,
--                last_name=form.last_name.data,
--            )
--        flash("User created successfully.", "success")
--    return render_template("admin/register_users_form.html", form=form)
--
--
--@bp.route('/login', methods=["GET", "POST"])
--def login():
--    form = LoginForm()
--    if form.validate_on_submit():
--        with uow() as db:
--            user = get_user(db, form=form)
--            if user:
--                # Example: Set session variable for logged-in user
--                login_user(user, remember=form.remember_me.data)
--                flash("Login successful.", "success")
--                return render_template("base.html")  # Replace "dashboard" with your desired route
--            else:
--                flash("Invalid email or password.", "danger")
--                render_template("user/login.html", form=form)
--    return render_template("user/login.html", form=form)
-\ No newline at end of file
+@@ -23,3 +23,8 @@ def register_views(app: Flask) -> None:
+     # Admin - Users
+     from .admin.school import bp as school_bp
+     app.register_blueprint(school_bp, url_prefix="/admin/schools")
++    
++    from .content.testimonials import bp as testimonials_bp
++    # The testimonials blueprint already has url_prefix="/testimonials"
++    # Avoid double-prefixing by not passing url_prefix here.
++    app.register_blueprint(testimonials_bp)

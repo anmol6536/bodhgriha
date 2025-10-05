@@ -157,6 +157,15 @@
         </fieldset>
 
         {# File #}
+    {% elif field.type == 'MultipleFileField' %}
+        {{ _label(field, required) }}
+        <input type="file" id="{{ field.id }}" name="{{ field.name }}" multiple
+               class="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-gray-700 hover:file:bg-gray-200 {{ 'ring-1 ring-red-500' if has_errors else '' }}"
+               aria-invalid="{{ 'true' if has_errors else 'false' }}"
+                {{ _kv(attrs) }}>
+        {{ _help(field.id, help_text or field.description) }}
+        {{ _errors(field.id, field.errors) }}
+
     {% elif field.type == 'FileField' %}
         {{ _label(field, required) }}
         <input type="file" id="{{ field.id }}" name="{{ field.name }}"
@@ -215,7 +224,7 @@
 
     {# Auto-enctype if any FileField #}
     {% if not enctype %}
-        {% if form | selectattr('type','equalto','FileField') | list %}
+        {% if form | selectattr('type','equalto','FileField') | list or form | selectattr('type','equalto','MultipleFileField') | list %}
             {% set enctype = 'multipart/form-data' %}
         {% endif %}
     {% endif %}

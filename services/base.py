@@ -3,16 +3,14 @@ from utilities.about_loader import get_about_context
 from flask import request, url_for, render_template
 
 
-
 def _invert_navbar_colors(context):
-    v="relative inline-flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-black/90 list-none cursor-pointer transition-colors duration-300 ease-out hover:text-[#0c5741] after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-0 after:bg-[#0c5741] after:transition-all after:duration-300 after:ease-out hover:after:w-full"
+    v = "relative inline-flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-black/90 list-none cursor-pointer transition-colors duration-300 ease-out hover:text-[#0c5741] after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-0 after:bg-[#0c5741] after:transition-all after:duration-300 after:ease-out hover:after:w-full"
     context['navbar_config']['styles']['desktop']['simple_link'] = v
     context['navbar_config']['styles']['desktop']['auth_link'] = v
     context['navbar_config']['styles']['desktop']['mega_menu_summary'] = v
     context['navbar_config']['styles']['brand']['logo'] = '"h-8 w-8 brightness-0"'
     context['navbar_config']['styles']['brand']['text'] = '"font-bold text-lg truncate text-black"'
     return context
-
 
 
 def _context():

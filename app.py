@@ -4,13 +4,12 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Length
 from flask_talisman import Talisman
 import os
-from core.db import init_db
 from models.sql import User, BlogPost
+from core.db import uow, init_db
 from views import register_views
+from core.enum_seed import seed_enums
 from flask_login import LoginManager
 from sqlalchemy import select
-from core.db import uow
-from core.enum_seed import seed_enums
 from utilities.logger import configure_logging
 from services.base import _context, _invert_navbar_colors
 
@@ -59,6 +58,7 @@ def create_app():
             "https://unpkg.com",
             "unsafe-inline",  # needed for HTMX
             # "'unsafe-eval'",  # only if you set tailwind.config in-page at runtime
+            "unsafe-inline"
         ],
 
         # --- Styles ---

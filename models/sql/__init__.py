@@ -12,6 +12,8 @@ from .base import (User,
                    search_posts
                    )
 
+from .testimonials import Testimonial, TestimonialMeta
+
 __all__ = [
     "User",
     "BlogPost",
@@ -24,5 +26,7 @@ __all__ = [
     "TwoFAMethod",
     "Address",
     "ensure_postgres_extensions",
-    "search_posts"
+    "search_posts",
+    "Testimonial",
+    "TestimonialMeta"
 ]

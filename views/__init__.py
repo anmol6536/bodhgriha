@@ -23,3 +23,8 @@ def register_views(app: Flask) -> None:
     # Admin - Users
     from .admin.school import bp as school_bp
     app.register_blueprint(school_bp, url_prefix="/admin/schools")
+    
+    from .content.testimonials import bp as testimonials_bp
+    # The testimonials blueprint already has url_prefix="/testimonials"
+    # Avoid double-prefixing by not passing url_prefix here.
+    app.register_blueprint(testimonials_bp)

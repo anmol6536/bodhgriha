@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Log In - Bodhgriha{% endblock %}
+
+{% block content %}
+    <!-- Background video sitting directly under the body -->
+    <video autoplay muted loop playsinline
+           class="fixed inset-0 w-full h-full object-cover -z-10 max-h-screen">
+        <source src="{{ url_for('static', filename='videos/testimonial-backdrop.mov') }}" type="video/mp4">
+        <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <!-- Optional overlay for readability -->
+    <div class="fixed inset-0 bg-black/50 -z-10"></div>
+
+    <!-- Login form container -->
+    <div class="relative flex flex-col items-center justify-center min-h-[80vh] px-4 py-10">
+
+
+        <div class="grid grid-cols-1 gap-20 md:gap-8 sm:grid-cols-2"> 
+
+            <div class="col-span-1 flex flex-col justify-center">
+                <!-- Welcome text -->
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl md:text-4xl font-bold text-white drop-shadow-lg mb-2">
+                        Submit Your Testimonial
+                    </h1>
+                    <p class="text-lg text-white/90">
+                        We value your feedback! Please share your experience with us.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-span-1 flex flex-col justify-center">
+                <div class="w-full max-w-md">
+                    <div class="bg-black/40 backdrop-blur rounded-2xl p-8">
+                        {% from "ui/macros/form.html" import render_form %}
+
+                        {{ render_form(form,
+                    action=url_for('testimonials.register'),
+                    method='POST',
+                    submit_label='Submit Testimonial',
+                    field_order=['title','description','rating','photos_upload','is_published'],
+                    field_classes={
+                        'description': 'sm:col-span-2',
+                        'photos_upload': 'sm:col-span-2'
+                    },
+                    extra_attrs={
+                        'title': {'placeholder':'Amazing experience', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+                        'description': {'placeholder':'Share your experience...', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+                    },
+                    submit_classes='w-full inline-flex items-center justify-center rounded-md py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    grid_classes='grid grid-cols-2 sm:grid-cols-1 gap-4'
+                    ) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <!-- Additional links -->
+            <div class="mt-8 text-center">
+                <a href="{{ url_for('index') }}" class="text-white/70 hover:text-white transition text-sm">
+                    ← Back to Home
+                </a>
+            </div>
+        </div>
+{% endblock %}

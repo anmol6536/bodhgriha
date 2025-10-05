@@ -7,6 +7,7 @@
 {% set styles = about.styles %}
 {% set content = about.content %}
 {% set icons = about_icons %}
+{% set brand_primary = "#0c5741" %}
 
 {% block title %}About Us - Bodhgriha{% endblock %}
 
@@ -123,8 +124,6 @@
         </div>
     </section>
 
-    </section>
-
     <!-- What Drives Us -->
     <section class="relative py-20 overflow-hidden">
         <!-- Background image -->
@@ -156,81 +155,81 @@
     <!-- Our Values -->
     <section class="py-20 bg-gradient-to-br from-emerald-900/40 via-teal-800/40 to-cyan-900/40">
         <div class="max-w-6xl mx-auto px-6">
-            <h2 class="text-4xl md:text-5xl font-bold text-center text-white mb-6">
+            <h2 class="text-4xl md:text-5xl font-bold text-center text-[{{ brand_primary }}] mb-6">
                 Our Values
             </h2>
-            <div class="w-24 h-1 bg-white mx-auto mb-16"></div>
+            <div class="w-24 h-1 bg-[{{ brand_primary }}] mx-auto mb-16"></div>
             
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all">
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Authenticity</h3>
-                    <p class="text-white/90 leading-relaxed">
+                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Authenticity</h3>
+                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
                         We honor yoga's roots and share programs grounded in genuine teaching.
                     </p>
                 </div>
 
-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all">
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Accessibility</h3>
-                    <p class="text-white/90 leading-relaxed">
+                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Accessibility</h3>
+                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
                         We believe yoga should be available to everyone, everywhere.
                     </p>
                 </div>
 
-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all">
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Community</h3>
-                    <p class="text-white/90 leading-relaxed">
+                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Community</h3>
+                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
                         Our platform is built on connection—between students, teachers, and schools.
                     </p>
                 </div>
 
-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all">
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Transparency</h3>
-                    <p class="text-white/90 leading-relaxed">
+                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Transparency</h3>
+                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
                         We value honesty, clarity, and trust in every listing and interaction.
                     </p>
                 </div>
 
-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all md:col-span-2 lg:col-span-1">
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Growth & Balance</h3>
-                    <p class="text-white/90 leading-relaxed">
+                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Growth & Balance</h3>
+                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
                         We see yoga not just as exercise, but as a way of life that brings harmony to mind, body, and spirit.
                     </p>
                 </div>
 
-                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all md:col-span-2 lg:col-span-1">
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/35 transition-all">
                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-8 h-8 text-[{{ brand_primary }}]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Compassion & Respect</h3>
-                    <p class="text-white/90 leading-relaxed">
+                    <h3 class="text-2xl font-bold text-[{{ brand_primary }}] mb-4">Compassion & Respect</h3>
+                    <p class="text-[{{ brand_primary }}]/90 leading-relaxed">
                         We approach every interaction with kindness and honor the diverse paths each individual takes on their yoga journey.
                     </p>
                 </div>

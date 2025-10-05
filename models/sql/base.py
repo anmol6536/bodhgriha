@@ -49,6 +49,7 @@ class TimestampMixin:
         nullable=False,
     )
 
+
 # ---------- Role bits (bit flags)
 class RoleBits(IntFlag):
     MEMBER = auto()  # 1
