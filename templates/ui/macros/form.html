@@ -1,0 +1,283 @@
+{# templates/partials/form.html #}
+{# Usage:
+  {% import "partials/form.html" as ui %}
+  {{ ui.render_form(
+       form,
+       action=url_for('auth.login'),
+       method='POST',
+       submit_label='Log In',
+       field_order=['email','password','remember_me','totp_code'],
+       help_texts={'totp_code': 'Enter the 6-digit code if 2FA is enabled.'},
+       extra_attrs={
+         'email': {'autocomplete':'email', 'placeholder':'you@example.com'},
+         'password': {'autocomplete':'current-password'}
+       }
+  ) }}
+#}
+
+{# ----------------------------- Helpers ----------------------------- #}
+{% macro _kv(attrs) -%}
+    {%- if attrs -%}
+        {%- for k, v in attrs.items() -%} {{ k }}="{{ v }}"{%- endfor -%}
+    {%- endif -%}
+{%- endmacro %}
+
+{% macro _label(field, required) -%}
+    <label for="{{ field.id }}" class="block mb-1 text-sm font-medium text-white">
+        {{ field.label.text }}{% if required %}<span class="text-red-600"> *</span>{% endif %}
+    </label>
+{%- endmacro %}
+
+{% macro _help(id, text) -%}
+    {% if text %}
+        <div id="{{ id }}-help" class="mt-1 text-xs text-gray-600">{{ text }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro _errors(id, errors) -%}
+    {% if errors %}
+        <div id="{{ id }}-error" class="mt-1 text-xs text-red-600">{{ errors|join(', ') }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro _base_input(has_errors=False) -%}
+    {{ ('block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 '
+      ~ ( 'border-red-300 focus:border-red-500 focus:ring-red-500'
+        if has_errors else
+           'border-gray-300 focus:border-blue-500 focus:ring-blue-500')) }}
+{%- endmacro %}
+
+{# ----------------------------- Field Renderer ----------------------------- #}
+{% macro render_field(field, help_text=None, attrs=None) %}
+    {% set attrs = attrs or {} %}
+    {% set required = field.flags.required %}
+    {% set has_errors = field.errors|length > 0 %}
+    {% set described_by = (field.id ~ '-help') if help_text else (field.id ~ '-error') if has_errors else None %}
+    {% set common = _base_input(has_errors) %}
+
+    {# Basic inputs #}
+    {% if field.type in [
+        'StringField','EmailField','TelField','URLField','PasswordField',
+        'IntegerField','DecimalField','FloatField','DateField','DateTimeLocalField',
+        'TimeField','ColorField'
+      ] %}
+        {{ _label(field, required) }}
+        {{ field(
+         class=common,
+         id=field.id,
+         aria_required='true' if required else None,
+         aria_invalid='true' if has_errors else None,
+         aria_describedby=described_by,
+         **attrs
+    ) }}
+        {{ _help(field.id, help_text or field.description) }}
+        {{ _errors(field.id, field.errors) }}
+
+        {# TextArea #}
+    {% elif field.type == 'TextAreaField' %}
+        {{ _label(field, required) }}
+        {{ field(
+         class=common ~ ' min-h-[6rem]',
+         id=field.id,
+         aria_invalid='true' if has_errors else None,
+         aria_describedby=described_by,
+         **attrs
+    ) }}
+        {{ _help(field.id, help_text or field.description) }}
+        {{ _errors(field.id, field.errors) }}
+
+        {# Boolean (checkbox) #}
+    {% elif field.type == 'BooleanField' %}
+        <div class="flex items-start gap-3">
+            <input type="checkbox"
+                   id="{{ field.id }}"
+                   name="{{ field.name }}"
+                   value="y"
+                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 {{ 'ring-1 ring-red-500' if has_errors else '' }}"
+                   {% if field.data %}checked{% endif %}
+                   aria-invalid="{{ 'true' if has_errors else 'false' }}"
+                    {{ _kv(attrs) }}>
+            <div>
+                {{ _label(field, required) }}
+                {{ _help(field.id, help_text or field.description) }}
+                {{ _errors(field.id, field.errors) }}
+            </div>
+        </div>
+
+        {# Select (single) #}
+    {% elif field.type == 'SelectField' %}
+        {{ _label(field, required) }}
+        <select id="{{ field.id }}" name="{{ field.name }}"
+                class="{{ common }}"
+                aria-invalid="{{ 'true' if has_errors else 'false' }}"
+                aria-describedby="{{ described_by or '' }}"
+                {{ _kv(attrs) }}>
+            {% for value, label in field.choices %}
+                <option value="{{ value }}" {% if value == field.data %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        {{ _help(field.id, help_text or field.description) }}
+        {{ _errors(field.id, field.errors) }}
+
+        {# Select (multiple) #}
+    {% elif field.type == 'SelectMultipleField' %}
+        {{ _label(field, required) }}
+        <select id="{{ field.id }}" name="{{ field.name }}" multiple
+                class="{{ common }}"
+                aria-invalid="{{ 'true' if has_errors else 'false' }}"
+                aria-describedby="{{ described_by or '' }}"
+                {{ _kv(attrs) }}>
+            {% for value, label in field.choices %}
+                <option value="{{ value }}"
+                        {% if field.data and (value in field.data) %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        {{ _help(field.id, help_text or field.description) }}
+        {{ _errors(field.id, field.errors) }}
+
+        {# Radio group #}
+    {% elif field.type == 'RadioField' %}
+        <fieldset>
+            <legend class="block mb-1 text-sm font-medium text-gray-900">
+                {{ field.label.text }}{% if required %}<span class="text-red-600"> *</span>{% endif %}
+            </legend>
+            <div class="space-y-2">
+                {% for sub in field %}
+                    <label class="flex items-center gap-2">
+                        <input type="radio"
+                               name="{{ field.name }}"
+                               value="{{ sub.data }}"
+                               {% if sub.checked %}checked{% endif %}
+                               class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {{ _kv(attrs) }}>
+                        <span>{{ sub.label.text }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+            {{ _help(field.id, help_text or field.description) }}
+            {{ _errors(field.id, field.errors) }}
+        </fieldset>
+
+        {# File #}
+    {% elif field.type == 'FileField' %}
+        {{ _label(field, required) }}
+        <input type="file" id="{{ field.id }}" name="{{ field.name }}"
+               class="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-gray-700 hover:file:bg-gray-200 {{ 'ring-1 ring-red-500' if has_errors else '' }}"
+               aria-invalid="{{ 'true' if has_errors else 'false' }}"
+                {{ _kv(attrs) }}>
+        {{ _help(field.id, help_text or field.description) }}
+        {{ _errors(field.id, field.errors) }}
+
+        {# FieldList #}
+    {% elif field.type == 'FieldList' %}
+        {{ _label(field, required) }}
+        <div class="space-y-2">
+            {% for sub in field %}
+                <div class="rounded-md border border-gray-200 p-3">
+                    {{ render_field(sub) }}
+                </div>
+            {% endfor %}
+        </div>
+        {{ _errors(field.id, field.errors) }}
+
+        {# FormField #}
+    {% elif field.type == 'FormField' %}
+        <fieldset class="rounded-md border border-gray-200 p-3">
+            <legend class="block mb-1 text-sm font-medium text-gray-900">{{ field.label.text }}</legend>
+            {% for sub in field.form
+           | rejectattr('type','equalto','HiddenField')
+           | rejectattr('type','equalto','CSRFTokenField')
+           | rejectattr('type','equalto','SubmitField') %}
+                {{ render_field(sub) }}
+            {% endfor %}
+        </fieldset>
+        {{ _errors(field.id, field.errors) }}
+
+        {# Fallback #}
+    {% else %}
+        {{ _label(field, required) }}
+        {{ field(class=common, id=field.id, **attrs) }}
+        {{ _help(field.id, help_text or field.description) }}
+        {{ _errors(field.id, field.errors) }}
+    {% endif %}
+{% endmacro %}
+
+{# ----------------------------- Form Renderer ----------------------------- #}
+{% macro render_form(form, action='', method='POST', submit_label='Submit',
+                     csrf=True, enctype=None, field_order=None,
+                     field_classes=None, help_texts=None, extra_attrs=None,
+                     errors_at_top=True,
+                     submit_classes='inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500',
+                     form_classes='space-y-6',
+                     grid_classes='grid grid-cols-1 sm:grid-cols-2 gap-4') %}
+
+    {% set field_classes = field_classes or {} %}
+    {% set help_texts = help_texts or {} %}
+    {% set extra_attrs = extra_attrs or {} %}
+
+    {# Auto-enctype if any FileField #}
+    {% if not enctype %}
+        {% if form | selectattr('type','equalto','FileField') | list %}
+            {% set enctype = 'multipart/form-data' %}
+        {% endif %}
+    {% endif %}
+
+    <form action="{{ action }}" method="{{ method }}" {% if enctype %}enctype="{{ enctype }}"{% endif %}
+          class="{{ form_classes }}">
+        {# Top summary of errors #}
+        {% if errors_at_top and form.errors %}
+            <div class="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                <div class="font-semibold mb-1">Please fix the following:</div>
+                <ul class="list-disc pl-5">
+                    {% for name, errs in form.errors.items() if name != 'csrf_token' %}
+                        {% for e in errs %}
+                            <li><strong>{{ name.replace('_',' ')|title }}</strong>: {{ e }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {# Hidden fields incl. CSRF #}
+        <div class="hidden">
+            {% if csrf and form.csrf_token is defined %}{{ form.csrf_token }}{% endif %}
+            {% for f in form | selectattr('type','equalto','HiddenField') %}
+                {{ f() }}
+            {% endfor %}
+        </div>
+
+        {# build a safe list of names to render #}
+        {% set actual_names =
+   form
+   | rejectattr('type','equalto','HiddenField')
+   | rejectattr('type','equalto','CSRFTokenField')
+   | rejectattr('type','equalto','SubmitField')
+   | map(attribute='name') | list %}
+
+        {% if field_order %}
+            {# keep only names that actually exist on the form #}
+            {% set ns = namespace(names=[]) %}
+            {% for n in field_order %}
+                {% if n in actual_names %}{% set _ = ns.names.append(n) %}{% endif %}
+            {% endfor %}
+            {% set names = ns.names %}
+        {% else %}
+            {% set names = actual_names %}
+        {% endif %}
+
+        <div class="{{ grid_classes }}">
+            {% for name in names %}
+                {% set field = form[name] %}
+                {% if field is not undefined %}
+                    <div class="{{ field_classes.get(name, '') }}">
+                        {{ render_field(field,
+                        help_text=help_texts.get(name),
+                        attrs=extra_attrs.get(name)) }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="pt-2">
+            <button type="submit" class="{{ submit_classes }}">{{ submit_label }}</button>
+        </div>
+    </form>
+{% endmacro %}

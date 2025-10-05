@@ -1,34 +1,31 @@
 {% extends "base.html" %}
+{% from "ui/macros/form.html" import render_form %}
 
 {% block title %}Register Blog{% endblock %}
 
 {% block content %}
-    <h1>Register Blog</h1>
+    <video autoplay muted loop playsinline
+           class="fixed inset-0 w-full h-full object-cover -z-10 max-h-screen">
+        <source src="{{ url_for('static', filename='videos/blog-register.mov') }}" type="video/mp4">
+        <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
 
-    <form method="post" action="{{ url_for('blog_admin.upload_blog') }}" enctype="multipart/form-data">
-        {{ form.hidden_tag() }}
+    <div class="max-w-xl mx-auto mt-20 rounded-xl py-40">
+        <div class="bg-white/20 backdrop-blur rounded-2xl p-8">
+            {{ render_form(form,
+                    action=url_for('blog.upload_blog'),
+                    method='POST',
+                    submit_label='Upload Blog',
+                    field_order=['md_file','publish'],
+                    help_texts={
+                        'md_file': 'Upload a Markdown (.md) file for your blog post.',
+                        'publish': 'Check to publish immediately after upload.'
+                    },
+                    submit_classes='w-full inline-flex items-center justify-center rounded-md px-4 py-2 bg-[#0c5741aa] hover:bg-[#0c5741] text-white',
+                    grid_classes='grid grid-cols-1 sm:grid-cols-1 gap-4'
+                ) }}
 
-        <div>
-            <label for="{{ form.md_file.id }}">{{ form.md_file.label.text }}</label>
-            {{ form.md_file }}
-            {% if form.md_file.description %}
-                <small>{{ form.md_file.description }}</small>
-            {% endif %}
-            {% for e in form.md_file.errors %}
-                <p>{{ e }}</p>
-            {% endfor %}
         </div>
-
-        <div>
-            {{ form.publish }}
-            <label for="{{ form.publish.id }}">{{ form.publish.label.text }}</label>
-            {% for e in form.publish.errors %}
-                <p>{{ e }}</p>
-            {% endfor %}
-        </div>
-
-        <div>
-            {{ form.submit }}
-        </div>
-    </form>
+    </div>
 {% endblock %}

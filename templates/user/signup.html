@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Bodhgriha{% endblock %}
+
+{% block content %}
+    <!-- Background video sitting directly under the body -->
+    <video autoplay muted loop playsinline
+           class="fixed inset-0 w-full h-full object-cover -z-10 max-h-screen">
+        <source src="{{ url_for('static', filename='videos/signup-backdrop.mov') }}" type="video/mp4">
+        <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <!-- Optional overlay for readability -->
+    <div class="fixed inset-0 bg-black/50 -z-10"></div>
+
+    <!-- Signup form container -->
+    <div class="relative flex flex-col items-center justify-center min-h-[80vh] px-4 py-4">
+
+        <!-- Welcome text -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-white drop-shadow-lg mb-2">
+                Join Bodhgriha
+            </h1>
+            <p class="text-lg text-white/90">
+                Create your account to get started
+            </p>
+        </div>
+
+        <!-- Signup form using macro -->
+        <div class="w-full max-w-md">
+            <div class="bg-black/40 backdrop-blur rounded-2xl p-8">
+                {% from "ui/macros/form.html" import render_form %}
+                {{ render_form(form,
+                    action=url_for('auth.register'),
+                    method='POST',
+                    submit_label='Create Account',
+                    field_order=['first_name', 'last_name', 'email','password'],
+                    help_texts={},
+                    extra_attrs={
+                        'first_name': {'autocomplete':'given-name', 'placeholder':'First Name', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+                        'last_name':  {'autocomplete':'family-name', 'placeholder':'Last Name', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+                        'email':      {'autocomplete':'email', 'placeholder':'you@example.com', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+                        'password':   {'autocomplete':'new-password', 'placeholder':'Create a strong password', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'}
+                    },
+                    submit_classes='w-full inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-medium bg-[#0c5741] text-white hover:bg-[#0c5741dd] focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    grid_classes='grid grid-cols-1 sm:grid-cols-1 gap-4'
+                ) }}
+            </div>
+            
+            <!-- Login Link -->
+            <div class="mt-6 text-center">
+                <p class="text-white/70 text-sm">
+                    Already have an account? 
+                    <a href="{{ url_for('auth.login') }}" class="text-emerald-400 hover:text-emerald-300 font-semibold transition">
+                        Log In
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Additional links -->
+        <div class="mt-8 text-center">
+            <a href="{{ url_for('index') }}" class="text-white/70 hover:text-white transition text-sm">
+                ← Back to Home
+            </a>
+        </div>
+    </div>
+{% endblock %}

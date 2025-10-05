@@ -4,6 +4,7 @@ from sqlalchemy.exc import ResourceClosedError
 import pandas as pd
 from pandas import DataFrame
 
+
 class EngineManager:
     _instances: dict[str, Engine] = dict(
         BODHGRIHA=create_engine("postgresql+psycopg2://admin:changeme@localhost:5434/postgres")

@@ -7,7 +7,9 @@ from .base import (User,
                    DeletedUser,
                    TwoFactorCredential,
                    TwoFAMethod,
-                   Address
+                   Address,
+                   ensure_postgres_extensions,
+                   search_posts
                    )
 
 __all__ = [
@@ -20,5 +22,7 @@ __all__ = [
     "DeletedUser",
     "TwoFactorCredential",
     "TwoFAMethod",
-    "Address"
+    "Address",
+    "ensure_postgres_extensions",
+    "search_posts"
 ]

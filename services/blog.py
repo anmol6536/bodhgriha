@@ -42,8 +42,6 @@ def register_blog(
 
     title = meta.pop("title")
 
-    print()
-
     post = BlogPost(
         slug=slug,
         title=title,

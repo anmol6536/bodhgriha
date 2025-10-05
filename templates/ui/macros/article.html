@@ -1,0 +1,81 @@
+{# templates/partials/blog_macros.html #}
+{% macro render_blog(
+    post,
+    container="container mx-auto px-4",
+    header_wrap="mx-auto max-w-3xl",
+    body_wrap="mx-auto mt-8 grid gap-8 lg:grid-cols-[1fr,minmax(220px,280px)] lg:items-start max-w-5xl",
+    prose="prose prose-invert max-w-3xl prose-headings:font-extrabold prose-h1:text-4xl md:prose-h1:text-5xl prose-a:text-primary-400 hover:prose-a:text-primary-300",
+    aside_panel="hidden lg:block sticky top-24 self-start",
+    aside_card="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur",
+    tag_chip="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 ring-1 ring-white/15 hover:bg-white/15",
+    h1_classes="mt-8 text-3xl md:text-5xl font-extrabold tracking-tight text-white",
+    meta_row="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/70",
+    cover_classes="relative mx-auto max-w-5xl overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10",
+    brand_primary="#0c5741",
+    brand_text="text-white",
+    toc_html=None,
+    author_override=None
+) %}
+    <article class="{{ container }}">
+        {# Cover #}
+        {% if post.meta and post.meta.hero_image %}
+            <figure class="{{ cover_classes }}">
+                <img src="{{ post.meta.hero_image }}" alt="" class="w-full h-auto object-cover">
+                <div class="absolute inset-x-0 bottom-0 h-1" style="background-color: {{ brand_primary }}"></div>
+            </figure>
+        {% endif %}
+
+        {# Header #}
+        <header class="{{ header_wrap }}">
+            {% if post.title %}
+                <h1 class="{{ h1_classes }}">{{ post.title }}</h1>
+            {% endif %}
+            {% if post.meta.author or post.published_at or post.meta.reading_time %}
+                <div class="{{ meta_row }}">
+                    {% if author_override or post.meta.author %}<span class="font-medium {{ brand_text }}">{{ author_override or post.meta.author }}</span>{% endif %}
+                    {% if post.published_at %}
+                        <time datetime="{{ post.published_at.isoformat() if post.published_at else '' }}">
+                            {{ post.published_at.strftime('%b %d, %Y') if post.published_at else '' }}
+                        </time>
+                    {% endif %}
+                    {% if post.meta.reading_time %}<span aria-hidden="true">•</span><span>{{ post.meta.reading_time }} min read</span>{% endif %}
+                </div>
+            {% endif %}
+        </header>
+
+        {# Body + optional TOC #}
+        <div class="{{ body_wrap }}">
+            <div class="{{ prose }}">
+                {# SECURITY: ensure body_html was sanitized server-side; rendered as-is #}
+                {{ post.body_html|safe }}
+            </div>
+
+            {% if toc_html %}
+                <aside class="{{ aside_panel }}">
+                    <div class="{{ aside_card }}">
+                        <div class="text-xs font-semibold tracking-wider text-white/70 mb-2">ON THIS PAGE</div>
+                        <nav class="prose prose-invert prose-sm max-w-none [&_a]:no-underline [&_a:hover]:underline"
+                             style="--tw-prose-links: {{ brand_primary }};">
+                            {{ toc_html|safe }}
+                        </nav>
+                    </div>
+                </aside>
+            {% endif %}
+        </div>
+
+        {% if post.meta.tags %}
+            <footer class="mx-auto mt-10 max-w-3xl">
+                <ul class="flex flex-wrap gap-2">
+                    {% for t in post.meta.tags %}
+                        <li>
+                            <a href="#"
+                               class="{{ tag_chip }}">
+                                #{{ t }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </footer>
+        {% endif %}
+    </article>
+{% endmacro %}

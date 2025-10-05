@@ -163,3 +163,22 @@ cython_debug/
 .idea/
 .idea/*
 
+
+# VS Code
+.vscode/
+.history/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
+
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# certificates
+*.pem
+*.crt
+*.key
+

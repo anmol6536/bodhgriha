@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask import current_app
-from forms.user import LoginForm
-from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential
-import pyotp
-import qrcode
+import hashlib
 import secrets
 import string
-from typing import Tuple, List
 from datetime import datetime, timezone, timedelta
-import secrets, hashlib
+from typing import Dict, Any
+from typing import Tuple, List, Optional
+
+import pyotp
 from flask import request, g
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from forms.user import LoginForm
+from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential
 from utilities import LOGGER
 
 
@@ -91,6 +91,8 @@ def get_user(db: Session, *, form: LoginForm) -> Optional[User]:
     )
     if has_totp:
         if not totp_code or not validate_totp_or_recovery(db, user, totp_code):
+            LOGGER.warning("2FA required but not provided or invalid for user id=%s email=%s code=%s", user.id, email,
+                           totp_code)
             return None
         LOGGER.info("2FA verified for user id=%s email=%s", user.id, email)
 
@@ -108,50 +110,101 @@ def get_user(db: Session, *, form: LoginForm) -> Optional[User]:
     return user
 
 
+def _user_exists(db: Session, email: str) -> bool:
+    exists = db.scalar(select(User.id).where(User.email == email))
+    return bool(exists)
+
+
 def _generate_recovery_codes(count: int = 10, length: int = 8) -> List[str]:
     alphabet = string.ascii_uppercase + string.digits
     return [''.join(secrets.choice(alphabet) for _ in range(length)) for _ in range(count)]
 
 
-def setup_totp(db: Session, user: User, recovery_count: int = 10) -> Tuple[str, List[str]]:
+def setup_totp(
+        db: Session,
+        user: "User",
+        reuse_secret: Optional[str] = None,
+        recovery_count: int = 10
+) -> Tuple[str, str, List[str]]:
     """
-    Create and persist a TOTP credential for `user`.
-    Returns (provisioning_uri, plain_recovery_codes).
-    NOTE: Does NOT return the secret. Caller can render QR from URI.
+    Ensure a single *pending* TOTP credential exists for `user`, optionally reusing/rotating the secret.
+
+    Returns:
+        (provisioning_uri, secret_b32, plain_recovery_codes)
+
+    Notes:
+    - Will raise ValueError("TOTP already enabled") if a verified TOTP exists.
+    - If reusing an existing pending secret and not rotating, returns [] for recovery codes.
+    - Caller must NOT expose the secret or plain codes to clients.
     """
     if user is None:
         raise ValueError("user_not_found")
 
-    # Enforce single enabled TOTP per user (if you have a partial-unique idx)
-    existing = db.scalar(
-        select(TwoFactorCredential)
-        .where(TwoFactorCredential.user_id == user.id,
-               TwoFactorCredential.method == TwoFAMethod.TOTP,
-               TwoFactorCredential.enabled == True)  # noqa: E712
+    # 1) Hard stop if user already has a verified TOTP
+    existing_verified = db.scalar(
+        select(TwoFactorCredential).where(
+            TwoFactorCredential.user_id == user.id,
+            TwoFactorCredential.method == TwoFAMethod.TOTP,
+            TwoFactorCredential.enabled.is_(True),
+            TwoFactorCredential.verified_at.isnot(None),  # verified
+        )
     )
-    if existing:
+    if existing_verified:
         raise ValueError("TOTP already enabled")
 
-    totp_secret = pyotp.random_base32()
-    plain_codes = _generate_recovery_codes(recovery_count)
-    hashed_codes = [generate_password_hash(c) for c in plain_codes]
-
-    cred = TwoFactorCredential(
-        user_id=user.id,  # link to user
-        method=TwoFAMethod.TOTP,
-        totp_secret_b32=totp_secret,
-        backup_codes_hashes=hashed_codes,
-        enabled=True,
-        verified_at=None,
-        label="Authenticator App",
+    # 2) Look for a pending (enabled, not yet verified) TOTP
+    pending = db.scalar(
+        select(TwoFactorCredential).where(
+            TwoFactorCredential.user_id == user.id,
+            TwoFactorCredential.method == TwoFAMethod.TOTP,
+            TwoFactorCredential.enabled.is_(True),
+            TwoFactorCredential.verified_at.is_(None),  # pending
+        )
     )
-    db.add(cred)
-    db.flush()  # persist cred.id; not strictly needed but good to surface errors now
 
-    provisioning_uri = pyotp.TOTP(totp_secret).provisioning_uri(
+    # helpers
+    def _new_codes(n: int) -> tuple[list[str], list[str]]:
+        plain = _generate_recovery_codes(n)
+        hashed = [generate_password_hash(c) for c in plain]
+        return plain, hashed
+
+    plain_codes: List[str] = []
+
+    if pending:
+        # Reuse existing pending credential
+        if reuse_secret:
+            # rotate secret and regen codes
+            pending.totp_secret_b32 = reuse_secret
+            plain_codes, hashed = _new_codes(recovery_count)
+            pending.backup_codes_hashes = hashed
+        else:
+            # keep current secret; do not regenerate codes
+            plain_codes = []
+        secret_b32 = pending.totp_secret_b32
+
+    else:
+        # 3) No pending cred -> create one
+        secret_b32 = reuse_secret or pyotp.random_base32()
+        plain_codes, hashed = _new_codes(recovery_count)
+        pending = TwoFactorCredential(
+            user_id=user.id,
+            method=TwoFAMethod.TOTP,
+            totp_secret_b32=secret_b32,
+            backup_codes_hashes=hashed,
+            enabled=True,
+            verified_at=None,
+            label="Authenticator App",
+        )
+        db.add(pending)
+
+    db.flush()  # ensure pending.id is assigned and constraints checked
+
+    # 4) Build otpauth URI from the (reused or new) secret
+    provisioning_uri = pyotp.TOTP(secret_b32).provisioning_uri(
         user.email, issuer_name="Bodhgriha"
     )
-    return provisioning_uri, plain_codes
+
+    return provisioning_uri, secret_b32, plain_codes
 
 
 def _resolve_user(db: Session, *, email: str) -> Optional[User]:
@@ -159,6 +212,20 @@ def _resolve_user(db: Session, *, email: str) -> Optional[User]:
     if not user:
         return None
     return user
+
+
+def _verify_totp(db: Session, user: User, secret: str) -> None:
+    # update verified_at if successful
+    cred = db.scalar(
+        select(TwoFactorCredential)
+        .where(TwoFactorCredential.user_id == user.id,
+               TwoFactorCredential.totp_secret_b32 == secret,
+               TwoFactorCredential.method == TwoFAMethod.TOTP,
+               TwoFactorCredential.enabled == True)  # noqa: E712
+    )
+
+    cred.verified_at = datetime.now(timezone.utc)
+    db.flush()
 
 
 def validate_totp_or_recovery(db: Session, user: User, code: str) -> bool:
@@ -290,49 +357,3 @@ def reset_password(db: Session, email: str, old_password: str, new_password: str
         raise ValueError("incorrect_password")
 
     forced_update_password(db, user, new_password)
-
-
-
-if __name__ == "__main__":
-    from core.db import uow, init_db
-
-    init_db()
-
-    with uow() as db:
-        try:
-            email = "gorakshakar.a@gmail.com"
-            # add_user(
-            #     db,
-            #     email=email,
-            #     password="StrongPassword123!",
-            #     first_name="Utkarsha",
-            #     last_name="Ajgoanakar",
-            #     role_bits=RoleBits.ADMIN | RoleBits.MEMBER,  # Admin
-            # )
-
-            # user = _resolve_user(db, email=email)
-            # provisioning_uri, plain_codes = setup_totp(db, user)
-            #
-            # qr = qrcode.make(provisioning_uri)
-            # qr.show()  # Display the QR code for scanning
-
-            # totp_code = input("Enter TOTP code: ")
-            # if validate_totp_or_recovery(db, user, totp_code):
-            #     print("TOTP code is valid.")
-            # else:
-            #     print("Invalid TOTP code.")
-            user = _resolve_user(db, email=email)
-            forced_update_password(db, user, "open")
-
-
-            CODE = input("Enter TOTP code: ")
-            form = type('LoginForm', (object,), {"email": None, "password": None, "totp_code": None, "remember_me": None})  # Mocking form
-            form.email = type('obj', (object,), {'data': email})  # Mocking form data
-            form.password = type('obj', (object,), {'data': "open"})  # Replace with actual password
-            form.totp_code = type('obj', (object,), {'data': CODE})  # Replace with actual TOTP code if needed
-            form.remember_me = type('obj', (object,), {'data': True})  # or False
-
-            user = get_user(db, form=form)
-
-        except ValueError as ve:
-            print("Error:", ve)

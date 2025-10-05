@@ -1,42 +1,77 @@
-{# templates/admin/users/form.html #}
+{% extends "base.html" %}
 
-<form method="post" action="{{ action }}">
-    {{ form.hidden_tag() }}
+{% block title %}Log In - Bodhgriha{% endblock %}
 
-    <div>
-        <label for="{{ form.email.id }}">{{ form.email.label.text }}</label>
-        {{ form.email }}
-        {% for e in form.email.errors %}
-            <p>{{ e }}</p>
-        {% endfor %}
+{% block content %}
+    <!-- Background video sitting directly under the body -->
+    <video autoplay muted loop playsinline
+           class="fixed inset-0 w-full h-full object-cover -z-10 max-h-screen">
+        <source src="{{ url_for('static', filename='videos/login-backdrop.mp4') }}" type="video/mp4">
+        <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <!-- Optional overlay for readability -->
+    <div class="fixed inset-0 bg-black/50 -z-10"></div>
+
+    <!-- Login form container -->
+    <div class="relative flex flex-col items-center justify-center min-h-[80vh] px-4 py-20">
+
+        <!-- Welcome text -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-white drop-shadow-lg mb-2">
+                Welcome Back
+            </h1>
+            <p class="text-lg text-white/90">
+                Sign in to your Bodhgriha account
+            </p>
+        </div>
+
+        <!-- Login form using macro -->
+        <div class="w-full max-w-md">
+            <div class="bg-black/40 backdrop-blur rounded-2xl p-8">
+                {% from "ui/macros/form.html" import render_form %}
+                {{ render_form(form,
+                    action=url_for('auth.login'),
+                    method='POST',
+                    submit_label='Log In',
+                    field_order=['email','password','remember_me','totp_code'],
+                    help_texts={
+                        'totp_code': 'Enter the 6-digit code from your authenticator app (if enabled).'
+                    },
+                    extra_attrs={
+                        'email':     {'autocomplete':'email', 'placeholder':'you@example.com', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+                        'password':  {'autocomplete':'current-password', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'},
+                        'totp_code': {'inputmode':'numeric', 'pattern':'\\d{6}', 'maxlength':'6', 'placeholder':'123456', 'class': 'w-full p-2 bg-black/40 text-white placeholder:text-white/60 border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500'}
+                    },
+                    submit_classes='w-full inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-medium bg-[#0c5741] text-white hover:bg-[#0c5741dd] focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    grid_classes='grid grid-cols-1 sm:grid-cols-1 gap-4'
+                ) }}
+                
+                <!-- Forgot Password Link -->
+                <div class="mt-4 text-center">
+                    <a href="#" class="text-sm text-white/70 hover:text-white transition">
+                        Forgot your password?
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Create Account Link -->
+            <div class="mt-6 text-center">
+                <p class="text-white/70 text-sm">
+                    Don't have an account? 
+                    <a href="{{ url_for('auth.register') }}" class="text-emerald-400 hover:text-emerald-300 font-semibold transition">
+                        Create Account
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Additional links -->
+        <div class="mt-8 text-center">
+            <a href="{{ url_for('index') }}" class="text-white/70 hover:text-white transition text-sm">
+                ← Back to Home
+            </a>
+        </div>
     </div>
-
-    <div>
-        <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
-        {{ form.password }}
-        {% for e in form.password.errors %}
-            <p>{{ e }}</p>
-        {% endfor %}
-    </div>
-
-    <div>
-        <!-- totp code -->
-        <label for="{{ form.totp_code.id }}">{{ form.totp_code.label.text }}</label>
-        {{ form.totp_code }}
-        {% for e in form.totp_code.errors %}
-            <p>{{ e }}</p>
-        {% endfor %}
-    </div>
-
-    <div>
-        {{ form.remember_me }}
-        <label for="{{ form.remember_me.id }}">{{ form.remember_me.label.text }}</label>
-        {% for e in form.remember_me.errors %}
-            <p>{{ e }}</p>
-        {% endfor %}
-    </div>
-
-    <div>
-        {{ form.submit }}
-    </div>
-</form>
+{% endblock %}

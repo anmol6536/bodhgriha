@@ -101,3 +101,14 @@ class ForgotPasswordForm(FlaskForm):
         validators=[DataRequired(), Email(), Length(max=255)],
     )
     submit = SubmitField("Send Reset Link")
+
+
+class RegisterTOTPForm(FlaskForm):
+    """Form to register TOTP 2FA."""
+
+    token = StringField(
+        "2FA Code",
+        validators=[DataRequired(), Length(min=6, max=6)],
+        description="Enter the 2FA code from your authenticator app"
+    )
+    submit = SubmitField("Enable 2FA")

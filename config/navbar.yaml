@@ -1,0 +1,213 @@
+# Navbar Configuration with Centralized Styles
+navbar:
+  # ===========================================
+  # 🎨 CENTRALIZED STYLES SECTION
+  # ===========================================
+  styles:
+    # Container Styles
+    container:
+      nav: "fixed top-0 w-full z-40 backdrop-blur supports-[backdrop-filter]:bg-white/10"
+      inner: "container mx-auto px-4"
+      flex: "flex h-14 items-center justify-between"
+    
+    # Brand Styles
+    brand:
+      link: "flex items-center gap-2 shrink-0"
+      logo: "h-8 w-8 invert brightness-200"
+      text: "font-bold text-lg truncate text-white"
+    
+    # Desktop Menu Styles
+    desktop:
+      wrapper: "hidden md:flex items-center gap-6"
+      mega_menu_summary: "relative inline-flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-white/90 list-none cursor-pointer transition-colors duration-300 ease-out hover:text-white after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-0 after:bg-white after:transition-all after:duration-300 after:ease-out hover:after:w-full"
+      mega_menu_panel: "fixed inset-x-0 top-14 z-50 rounded-none backdrop-blur supports-[backdrop-filter]:bg-black/90"
+      mega_menu_accent: "h-1 bg-[#0c5741]"
+      mega_menu_grid: "grid gap-8 p-6 sm:grid-cols-2 lg:grid-cols-4"
+      mega_menu_max_width: "max-w-screen-xl"
+      section_title: "text-m font-semibold tracking-wider mb-3"
+      section_wrapper: "text-white"
+      section_link: "block rounded px-2 py-1.5 hover:bg-[#0c5741]/50"
+      simple_link: "relative inline-flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-white/90 list-none cursor-pointer transition-colors duration-300 ease-out hover:text-white after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-0 after:bg-white after:transition-all after:duration-300 after:ease-out hover:after:w-full"
+      auth_link: "relative inline-flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-white/90 list-none cursor-pointer transition-colors duration-300 ease-out hover:text-white after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-0 after:bg-white after:transition-all after:duration-300 after:ease-out hover:after:w-full"
+    
+    # Mobile Menu Styles
+    mobile:
+      toggle: "list-none inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/90 text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      toggle_icon: "h-5 w-5"
+      drawer_wrapper: "md:hidden relative"
+      drawer: "absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-xl border border-white/10 backdrop-blur supports-[backdrop-filter]:bg-black/90 ring-black/10"
+      drawer_content: "flex flex-col p-2 divide-y divide-white/10"
+      collapsible_summary: "flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm text-white/90 backdrop-blur supports-[backdrop-filter]:bg-black/50 hover:bg-white/10 transition-colors"
+      collapsible_link: "block rounded px-3 py-1.5 text-sm text-white/80 hover:bg-white/10"
+      divider: "my-2 h-px bg-white/10"
+      auth_link: "rounded-lg px-3 py-2 text-sm text-white/90 backdrop-blur supports-[backdrop-filter]:bg-black/50 hover:bg-white/10 transition-colors"
+
+  # ===========================================
+  # 📝 CONTENT CONFIGURATION
+  # ===========================================
+  
+  # Brand/Logo Configuration
+  brand:
+    logo:
+      path: "icons/icon.png"
+      alt: "Logo"
+    link:
+      url: "/"
+
+  # Main Navigation Container
+  container:
+    hx_boost: true
+
+  # Desktop Menu Configuration
+  desktop:
+    # Menu Items
+    menu_items:
+    
+    # Mega Menu: Yoga Experiences
+      - type: "mega_menu"
+        label: "Yoga Experiences"
+        sections:
+          - title: "YOGA EXPERIENCES"
+            links:
+              - label: "Yoga Retreats"
+                url: "#"
+              - label: "Teacher Training"
+                url: "#"
+              - label: "Wellness Retreats"
+                url: "#"
+          - title: "SKILL LEVEL"
+            links:
+              - label: "Beginner"
+                url: "#"
+              - label: "Intermediate"
+                url: "#"
+              - label: "Advanced"
+                url: "#"
+          - title: "MEDITATION & BREATH"
+            links:
+              - label: "Yoga & Meditation"
+                url: "#"
+              - label: "Yoga & Pranayama"
+                url: "#"
+              - label: "Silent Yoga Retreats"
+                url: "#"
+              - label: "Sound Healing"
+                url: "#"
+              - label: "Yoga & Mindfulness"
+                url: "#"
+              - label: "Yoga & Kirtan"
+                url: "#"
+              - label: "Yoga & Chanting"
+                url: "#"
+          - title: "SPIRITUAL RETREATS"
+            links:
+              - label: "Ayurveda Retreats"
+                url: "#"
+              - label: "Reiki Healing"
+                url: "#"
+              - label: "Healing Retreats"
+                url: "#"
+
+      - type: "mega_menu"
+        label: "Yoga Styles"
+        sections:
+          - title: "DYNAMIC & FLOW"
+            links:
+              - label: "Vinyasa yoga"
+                url: "#"
+              - label: "Hatha yoga"
+                url: "#"
+              - label: "Iyengar Yoga"
+                url: "#"
+              - label: "Ashtanga Yoga"
+                url: "#"
+              - label: "Mysore Yoga"
+                url: "#"
+              - label: "Bikram Yoga"
+                url: "#"
+              - label: "Power Yoga"
+                url: "#"
+          - title: "RESTORATIVE YOGA"
+            links:
+              - label: "Restorative Yoga"
+                url: "#"
+              - label: "Yin Yoga"
+                url: "#"
+              - label: "Yoga Nidra"
+                url: "#"
+              - label: "Kripalu Yoga"
+                url: "#"
+          - title: "SPIRITUAL YOGA"
+            links:
+              - label: "Tantra Yoga"
+                url: "#"
+              - label: "Kundalini Yoga"
+                url: "#"
+              - label: "Karma Yoga"
+                url: "#"
+              - label: "Bhakti Yoga"
+                url: "#"
+              - label: "Chakra Yoga"
+                url: "#"
+          - title: "SPECIAL YOGA"
+            links:
+              - label: "SUP Yoga"
+                url: "#"
+              - label: "Aerial Yoga"
+                url: "#"
+              - label: "Acro Yoga"
+                url: "#"
+      
+      # Simple Links
+      - type: "link"
+        label: "Home"
+        url: "/"
+
+      - type: "link"
+        label: "About Us"
+        url: "/about-us"
+
+      - type: "link"
+        label: "Blog"
+        url: "/blog/"
+
+      # Conditional Auth Links
+      - type: "auth_conditional"
+
+  # ===========================================
+  # 📱 Mobile Menu Configuration
+  # ===========================================
+  mobile:
+    toggle:
+      aria_label: "Toggle menu"
+
+    # Menu Items
+    menu_items:
+      - type: "collapsible"
+        label: "Yoga Styles"
+        links:
+          - label: "Hatha"
+            url: "#"
+          - label: "Vinyasa"
+            url: "#"
+          - label: "All Styles"
+            url: "#"
+
+      - type: "collapsible"
+        label: "Yoga Experiences"
+        links:
+          - label: "Yoga Retreats"
+            url: "#"
+          - label: "Teacher Training"
+            url: "#"
+
+      # Divider
+      - type: "divider"
+
+      # Auth Conditional
+      - type: "auth_conditional"
+
+# SVG Icons
+icons:
+  chevron_down: '<path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z"/>'
+  hamburger: '<path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'

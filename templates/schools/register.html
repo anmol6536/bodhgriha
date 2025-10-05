@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Register 2FA{% endblock %}
+
+{% block content %}
+    <div class="max-w-md mx-auto mt-10 bg-white shadow rounded p-6">
+        <h1 class="text-xl font-semibold mb-4">Register Your School</h1>
+        <p class="mb-4">Join our platform to connect with students and grow your yoga community.</p>
+        {% from "ui/macros/form.html" import render_form %}
+
+        {{ render_form(
+            form,
+            action=url_for('schools.register'),
+            method='POST',
+            submit_label='Register School',
+            field_order=[
+              'name',
+              'description',
+              'email',
+              'phone',
+              'website',
+              'registration_number',
+              'certification_body'
+            ],
+            help_texts={
+              'email': 'We\'ll use this for official communication.',
+              'website': 'Public website for your school (optional).',
+              'registration_number': 'Government or association registration (optional).',
+              'certification_body': 'E.g., Yoga Alliance, IYA, or other (optional).'
+            },
+            extra_attrs={
+              'name':                {'autocomplete':'organization', 'placeholder':'Sunrise Yoga School'},
+              'description':         {'rows':'4', 'placeholder':'Brief overview of your school, styles, lineage…'},
+              'email':               {'autocomplete':'email', 'placeholder':'school@example.com', 'inputmode':'email'},
+              'phone':               {'autocomplete':'tel', 'placeholder':'+91 98765 43210', 'inputmode':'tel', 'pattern':'[0-9+\\- ()]*'},
+              'website':             {'autocomplete':'url', 'placeholder':'https://www.sunriseyoga.in', 'inputmode':'url'},
+              'registration_number': {'placeholder':'REG-2025-XYZ'},
+              'certification_body':  {'placeholder':'Yoga Alliance / IYA / Other'}
+            },
+            submit_classes='w-full inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500',
+            grid_classes='grid grid-cols-1 gap-4'
+        ) }}
+    </div>
+
+{% endblock %}

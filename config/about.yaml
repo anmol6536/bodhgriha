@@ -1,0 +1,173 @@
+# About Page Configuration with Centralized Styles
+about:
+  # ===========================================
+  # 🎨 CENTRALIZED STYLES SECTION
+  # ===========================================
+  styles:
+    # Page Layout
+    page:
+      background: "fixed inset-0"
+    
+    # Hero Section
+    hero:
+      container: "relative min-h-[60vh] flex items-center justify-center overflow-hidden"
+      background_image: "absolute inset-0"
+      image: "w-full h-full object-cover filter grayscale"
+      gradient_overlay: "absolute inset-0 bg-gradient-to-br from-[#0c5741]/60 via-teal-800/30 to-cyan-900/30"
+      animated_overlay: "absolute inset-0 bg-black/20"
+      content: "relative z-10 text-center px-4"
+      blockquote: "max-w-4xl mx-auto"
+      quote_wrapper: "relative"
+      opening_quote: "absolute -top-8 -left-4 md:-left-12 w-12 h-12 md:w-16 md:h-16 text-white/90"
+      quote_text: "text-xl md:text-3xl text-white font-light leading-relaxed italic px-8 md:px-16"
+      closing_quote: "absolute -bottom-8 -right-4 md:-right-12 w-12 h-12 md:w-16 md:h-16 text-white/90 rotate-180"
+      footer: "mt-8 text-white/80 text-lg md:text-xl"
+      cite: "not-italic"
+
+    # Section Layout
+    section:
+      container: "max-w-5xl mx-auto px-6"
+      wide_container: "max-w-6xl mx-auto px-6"
+      title: "text-4xl md:text-5xl font-bold text-center mb-6"
+      title_white: "text-4xl md:text-5xl font-bold text-center text-white mb-6"
+      title_black: "text-4xl md:text-5xl font-bold text-center text-black mb-6"
+      divider: "w-24 h-1 mx-auto mb-12"
+      divider_emerald: "w-24 h-1 bg-[#0c5741] mx-auto mb-12"
+      divider_white: "w-24 h-1 bg-white mx-auto mb-12"
+      text: "text-lg leading-relaxed text-center max-w-4xl mx-auto"
+      text_white: "text-lg text-white leading-relaxed text-center max-w-4xl mx-auto drop-shadow-lg"
+      text_black: "text-lg text-black-300 leading-relaxed text-center max-w-4xl mx-auto"
+      text_gray: "text-lg text-gray-300 leading-relaxed text-center max-w-4xl mx-auto mb-12"
+
+    # Background Sections
+    background_section:
+      container: "relative py-20 overflow-hidden"
+      background_image: "absolute inset-0"
+      image: "w-full h-full object-cover filter grayscale"
+      gradient_overlay: "absolute inset-0 bg-gradient-to-br from-[#0c5741] via-teal-800/30 to-cyan-900/30"
+      animated_overlay: "absolute inset-0 bg-black/20"
+      content: "relative z-10"
+
+    # Color Sections
+    white_section: "py-20 bg-white-900/30"
+    slate_section: "py-20"
+    gradient_section: "py-20 bg-gradient-to-br"
+    slate_cta_section: "py-20"
+
+    # Grid Layouts
+    grid:
+      two_col: "grid md:grid-cols-2 gap-8 max-w-5xl mx-auto"
+      three_col: "grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+      responsive_col: "grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+
+    # Card Styles
+    card:
+      base: "bg-slate-100/60 backdrop-blur rounded-2xl p-8 border border-slate-700/50"
+      glass: "bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all"
+      title: "text-2xl font-bold text-[#0c5741] mb-4"
+      title_white: "text-2xl font-bold text-white mb-4"
+      text: "text-black-300 leading-relaxed"
+      text_white: "text-white/90 leading-relaxed"
+      icon_wrapper: "w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6"
+      icon: "w-8 h-8 text-white"
+
+    # Special Cards
+    card_variants:
+      spanning_two: "md:col-span-2 lg:col-span-1"
+
+    # CTA Section
+    cta:
+      container: "max-w-4xl mx-auto text-center px-6"
+      title: "text-3xl md:text-4xl font-bold text-white mb-6"
+      text: "text-lg text-gray-300 mb-8 max-w-2xl mx-auto"
+      button_wrapper: "flex flex-col sm:flex-row gap-4 justify-center items-center"
+      primary_button: "inline-block bg-[#0c5741] hover:bg-[#0c5741]-700 text-white font-semibold px-8 py-4 rounded-full text-lg transition-colors shadow-lg hover:shadow-xl"
+      secondary_button: "inline-block bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-4 rounded-full text-lg transition-colors shadow-lg hover:shadow-xl border border-white/30"
+
+  # ===========================================
+  # 📝 CONTENT CONFIGURATION
+  # ===========================================
+  content:
+    hero:
+      quote: "Our mission is to connect seekers with authentic yoga courses, teacher trainings, and retreats worldwide, making transformative experiences accessible, trustworthy, and life-changing."
+      attribution: "— Bodhgriha"
+    
+    sections:
+      who_we_are:
+        title: "Who We Are"
+        text: "We are a team of yoga instructors and tech experts who believe yoga is more than a practice—it's a journey of growth, healing, and connection. Our platform brings together yoga schools, teacher trainings and retreats into one easy-to-navigate space, so that students and practitioners can discover opportunities that truly resonate with their path."
+      
+      vision:
+        title: "Our Vision"
+        text: "We dream of a world where authentic yoga experiences are accessible to all, whether you're starting your first class, seeking a retreat to recharge, or deepening your journey through teacher training. We want to make it easier for people to find the right place, teacher, and style that inspires them to live with balance, mindfulness and joy."
+      
+      goal:
+        title: "Our Goal"
+        intro: "Our goal is simple: to be a trusted guide for yoga seekers and a supportive partner for yoga schools and retreat hosts. We aim to:"
+      
+      what_drives_us:
+        title: "What Drives Us"
+        text: "We are driven by a love for yoga and a belief in its power to transform lives. Many of us have experienced firsthand how yoga can ease stress, bring clarity, and open doors to personal growth. This passion fuels our commitment to creating a space where anyone, from any background, can find an experience that nurtures them—whether that's a local class or a retreat halfway across the world."
+      
+      values:
+        title: "Our Values"
+      
+      cta:
+        title: "Ready to Begin Your Journey?"
+        text: "Join us in discovering authentic yoga experiences that will transform your life. Whether you're a beginner or seasoned practitioner, we're here to guide you every step of the way."
+        primary_button: "Explore Yoga Experiences"
+        secondary_button: "Partner with Us"
+
+    # Goal Cards
+    goal_cards:
+      - title: "Simplify Discovery"
+        text: "Make it easy for students to explore, compare, and choose yoga courses, retreats, and teacher trainings that fit their needs, budget, and schedule."
+      - title: "Empower Informed Choices"
+        text: "Provide clear, transparent information about programs, locations, teachers, and experiences so seekers feel confident in their decisions."
+      - title: "Build Trust"
+        text: "Verify schools and retreats to ensure quality and authenticity, creating a safe and reliable space for students."
+      - title: "Support Schools & Teachers"
+        text: "Offer yoga schools and retreat centers a platform to reach the right audience without the burden of marketing complexity."
+      - title: "Foster Global Connection"
+        text: "Create a community where yoga practitioners from around the world can connect with authentic traditions, practices, and teachers."
+      - title: "Encourage Lifelong Growth"
+        text: "Inspire students not only to attend a retreat or course, but to carry yoga's wisdom into daily life for lasting transformation."
+
+    # Values Cards
+    values_cards:
+      - title: "Authenticity"
+        text: "We honor yoga's roots and share programs grounded in genuine teaching."
+        icon: "check"
+      - title: "Accessibility"
+        text: "We believe yoga should be available to everyone, everywhere."
+        icon: "global"
+      - title: "Community"
+        text: "Our platform is built on connection—between students, teachers, and schools."
+        icon: "users"
+      - title: "Transparency"
+        text: "We value honesty, clarity, and trust in every listing and interaction."
+        icon: "eye"
+      - title: "Growth & Balance"
+        text: "We see yoga not just as exercise, but as a way of life that brings harmony to mind, body, and spirit."
+        icon: "lightning"
+        variant: "spanning"
+      - title: "Compassion & Respect"
+        text: "We approach every interaction with kindness and honor the diverse paths each individual takes on their yoga journey."
+        icon: "heart"
+        variant: "spanning"
+
+  # Images
+  images:
+    hero: "images/about-us-hero.jpeg"
+    vision: "images/about-us-vision.jpeg"
+    what_drives_us: "images/about-us-what-drives-us.jpeg"
+
+# SVG Icons
+icons:
+  check: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>'
+  global: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
+  users: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>'
+  eye: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
+  lightning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>'
+  heart: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>'
+  quote: '<path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>'

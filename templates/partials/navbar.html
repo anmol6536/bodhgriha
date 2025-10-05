@@ -1,0 +1,130 @@
+{# Composable Navbar - Driven by YAML Configuration with Centralized Styles #}
+{% set nav = navbar_config %}
+{% set styles = nav.styles %}
+{% set icons = navbar_icons %}
+
+<nav class="{{ styles.container.nav }}" {% if nav.container.hx_boost %}hx-boost="true"{% endif %}>
+    <div class="{{ styles.container.inner }}">
+        <div class="{{ styles.container.flex }}">
+            <!-- Brand -->
+            <a href="{{ nav.brand.link.url }}" class="{{ styles.brand.link }}">
+                <img src="{{ url_for('static', filename=nav.brand.logo.path) }}" 
+                     alt="{{ nav.brand.logo.alt }}"
+                     class="{{ styles.brand.logo }}">
+                <span class="{{ styles.brand.text }}">{% if config.SITE_NAME %}{{ config.SITE_NAME }}{% else %}My Site{% endif %}</span>
+            </a>
+
+            <!-- Desktop menu -->
+            <div class="{{ styles.desktop.wrapper }}">
+                {% for item in nav.desktop.menu_items %}
+                    {% if item.type == 'mega_menu' %}
+                        <!-- Mega Menu -->
+                        <div class="relative">
+                            <details class="group">
+                                <summary class="{{ styles.desktop.mega_menu_summary }}">
+                                    {{ item.label }}
+                                </summary>
+
+                                <!-- Mega Menu Panel -->
+                                <div class="{{ styles.desktop.mega_menu_panel }}">
+                                    <div class="{{ styles.desktop.mega_menu_accent }}"></div>
+                                    <div class="mx-auto w-full {{ styles.desktop.mega_menu_max_width }}">
+                                        <div class="{{ styles.desktop.mega_menu_grid }}">
+                                            {% for section in item.sections %}
+                                                <div class="{{ styles.desktop.section_wrapper }}">
+                                                    <div class="{{ styles.desktop.section_title }}">{{ section.title }}</div>
+                                                    <ul class="space-y-2">
+                                                        {% for link in section.links %}
+                                                            <li>
+                                                                <a class="{{ styles.desktop.section_link }}" href="{{ link.url }}">
+                                                                    {{ link.label }}
+                                                                </a>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+
+                    {% elif item.type == 'link' %}
+                        <!-- Simple Link -->
+                        <a href="{{ item.url }}" class="{{ styles.desktop.simple_link }}">
+                            {{ item.label }}
+                        </a>
+
+                    {% elif item.type == 'auth_conditional' %}
+                        <!-- Auth Conditional Link -->
+                        {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('auth.logout') }}" class="{{ styles.desktop.auth_link }}">
+                                Logout ({{ current_user.email }})
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('auth.login') }}" class="{{ styles.desktop.auth_link }}">
+                                Login
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Mobile toggle (details/summary) -->
+            <details class="{{ styles.mobile.drawer_wrapper }}">
+                <summary class="{{ styles.mobile.toggle }}"
+                         aria-label="{{ nav.mobile.toggle.aria_label }}">
+                    <svg viewBox="0 0 24 24" fill="none" class="{{ styles.mobile.toggle_icon }}" aria-hidden="true">
+                        {{ icons.hamburger|safe }}
+                    </svg>
+                </summary>
+
+                <!-- Mobile drawer -->
+                <div class="{{ styles.mobile.drawer }}">
+                    <div class="{{ styles.mobile.drawer_content }}">
+                        {% for item in nav.mobile.menu_items %}
+                            {% if item.type == 'collapsible' %}
+                                <!-- Collapsible mobile group -->
+                                <details {% if not loop.first %}class="mt-1"{% endif %}>
+                                    <summary class="{{ styles.mobile.collapsible_summary }}">
+                                        {{ item.label }}
+                                        <svg class="h-4 w-4 transition-transform details-open:rotate-180" viewBox="0 0 20 20"
+                                             fill="currentColor">
+                                            {{ icons.chevron_down|safe }}
+                                        </svg>
+                                    </summary>
+                                    <ul class="mt-1 ml-3 space-y-1">
+                                        {% for link in item.links %}
+                                            <li>
+                                                <a class="{{ styles.mobile.collapsible_link }}" href="{{ link.url }}">
+                                                    {{ link.label }}
+                                                </a>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </details>
+
+                            {% elif item.type == 'divider' %}
+                                <!-- Divider -->
+                                <div class="{{ styles.mobile.divider }}"></div>
+
+                            {% elif item.type == 'auth_conditional' %}
+                                <!-- Auth Conditional -->
+                                {% if current_user.is_authenticated %}
+                                    <a href="{{ url_for('auth.logout') }}" class="{{ styles.mobile.auth_link }}">
+                                        Logout ({{ current_user.email }})
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('auth.login') }}" class="{{ styles.mobile.auth_link }}">
+                                        Login
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+</nav>

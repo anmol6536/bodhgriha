@@ -1,0 +1,62 @@
+{% macro toast(message,
+               category='info',
+               auto_ms=6000,
+               dismiss_url=None,
+               bg_class=None,
+               text_class=None,
+               border_class=None,
+               bg_color=None,
+               text_color=None) %}
+    {% set dismiss_url = dismiss_url or url_for('ui.empty') %}
+
+    {# Palette fallback #}
+    {% if not bg_class and not bg_color %}
+        {% if category == 'success' %}
+            {% set bg_class = 'bg-green-50' %}
+            {% set border_class = 'border border-green-200' %}
+            {% set text_class = text_class or 'text-green-900' %}
+        {% elif category == 'danger' %}
+            {% set bg_class = 'bg-red-50' %}
+            {% set border_class = 'border border-red-200' %}
+            {% set text_class = text_class or 'text-red-900' %}
+        {% elif category == 'warning' %}
+            {% set bg_class = 'bg-yellow-50' %}
+            {% set border_class = 'border border-yellow-200' %}
+            {% set text_class = text_class or 'text-yellow-900' %}
+        {% elif category == 'info' %}
+            {% set bg_class = 'bg-blue-50' %}
+            {% set border_class = 'border border-blue-200' %}
+            {% set text_class = text_class or 'text-blue-900' %}
+        {% else %}
+            {% set bg_class = 'bg-gray-50' %}
+            {% set border_class = 'border border-gray-200' %}
+            {% set text_class = text_class or 'text-gray-900' %}
+        {% endif %}
+    {% endif %}
+
+    {# Inline style if raw colors are given #}
+    {% set style_inline = [] %}
+    {% if bg_color %}{% set _ = style_inline.append('background-color:' ~ bg_color) %}{% endif %}
+    {% if text_color %}{% set _ = style_inline.append('color:' ~ text_color) %}{% endif %}
+
+    <div class="toast relative pointer-events-auto flex items-center gap-3 rounded-lg shadow-md {{ bg_class or '' }} {{ text_class or '' }} {{ border_class or '' }}
+                px-4 py-3 w-[calc(100%-1rem)] max-w-sm sm:max-w-md md:max-w-lg"
+         style="{{ style_inline|join('; ') }}"
+         hx-trigger="load delay:{{ (auto_ms/1000)|round(3,'floor') }}s"
+         hx-get="{{ dismiss_url }}"
+         hx-target="closest .toast"
+         hx-swap="delete">
+
+        <div class="flex-1 min-w-0">
+            <p class="font-medium leading-5">{{ message }}</p>
+        </div>
+
+        <button type="button"
+                class="ml-2 inline-flex items-center justify-center h-6 w-6 rounded-full text-sm font-bold opacity-60 hover:opacity-100 hover:bg-black/10 transition"
+                aria-label="Dismiss"
+                hx-get="{{ dismiss_url }}"
+                hx-target="closest .toast"
+                hx-swap="delete">×
+        </button>
+    </div>
+{% endmacro %}

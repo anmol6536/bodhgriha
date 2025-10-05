@@ -2,44 +2,116 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>{% block title %}My Site{% endblock %}</title>
+    <title>{% block title %}{{ page_title|default('My Site') }}{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {# Place to inject extra <head> content like stylesheets #}
+    {# --- SEO basics --- #}
+    <meta name="description"
+          content="{% block description %}{{ page_description|default('A minimal blog platform') }}{% endblock %}">
+    <meta name="robots" content="{{ robots|default('index, follow') }}">
+    <link rel="canonical" href="{{ canonical_url|default(request.url) }}">
+
+    {# --- Favicons / PWA --- #}
+    <link rel="icon" type="image/png" href="{{ url_for('favicon') }}">
+    <link rel="manifest" href="{{ manifest_url|default('/manifest.json') }}">
+    <meta name="theme-color" content="{{ theme_color|default('#ffffff') }}">
+
+    {# --- Open Graph / Twitter --- #}
+    <meta property="og:site_name" content="{{ config.SITE_NAME|default('My Site') }}">
+    <meta property="og:title" content="{{ og_title|default(page_title|default('My Site')) }}">
+    <meta property="og:description"
+          content="{{ og_description|default(page_description|default('A minimal blog platform')) }}">
+    <meta property="og:type" content="{{ og_type|default('website') }}">
+    <meta property="og:url" content="{{ og_url|default(canonical_url|default(request.url)) }}">
+    {% if og_image %}
+        <meta property="og:image" content="{{ og_image }}">
+    {% endif %}
+    <meta name="twitter:card" content="{{ twitter_card|default('summary_large_image') }}">
+    <meta name="twitter:title" content="{{ twitter_title|default(og_title|default(page_title|default('My Site'))) }}">
+    <meta name="twitter:description"
+          content="{{ twitter_description|default(og_description|default(page_description|default('A minimal blog platform'))) }}">
+    {% if twitter_image %}
+        <meta name="twitter:image" content="{{ twitter_image }}">
+    {% endif %}
+    {% if twitter_site %}
+        <meta name="twitter:site" content="{{ twitter_site }}">
+    {% endif %}
+
+    {# --- Preconnects (safe defaults) --- #}
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+
+    {# --- Tailwind (CDN, zero-build) --- #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% if tailwind_config %}
+        <script>
+            // Optional runtime Tailwind config (override via `tailwind_config` dict -> tojson)
+            tailwind.config = {{ tailwind_config|tojson }};
+        </script>
+    {% endif %}
+
+    {# --- HTMX (core + optional extras) --- #}
+    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    {% if use_hyperscript %}
+        <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+    {% endif %}
+
+    {# --- CSP nonce-friendly slot for page-specific scripts/styles --- #}
+    {% if inline_head_css %}
+        <style>{{ inline_head_css|safe }}</style>
+    {% endif %}
+
+    {# --- JSON-LD (Website + optional Breadcrumbs) --- #}
+    <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": {{ config.SITE_NAME|default('My Site')|tojson }},
+    "url": {{ (canonical_url|default(request.url))|tojson }},
+        {% if search_url %}
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {{ (search_url ~ "?q={search_term_string}")|tojson }},
+      "query-input": "required name=search_term_string"
+    }
+        {% endif %}
+        }
+    </script>
+
+    {# Existing block for additional head content from child templates #}
     {% block head %}{% endblock %}
 </head>
-<body>
-<header>
-    <nav>
-        <a href="{{ url_for('user.new_user') }}">New User</a> |
-        <a href="{{ url_for('blog_admin.upload_blog') }}">Register Blog</a>
-        {% if current_user.is_authenticated %}
-            | <a href="#">Logout ({{ current_user.email }})</a>
-        {% else %}
-            | <a href="{{ url_for('user.login') }}">Login</a>
-        {% endif %}
-    </nav>
-</header>
+<body class="text-gray-900 min-h-screen flex flex-col pt-14">
+<!-- Fixed Navbar -->
+{% include 'partials/navbar.html' %}
 
-<main>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul>
+<main class="flex-1 container mx-auto">
+    {% import 'partials/toast.html' as ui %}
+
+    <div id="toast-container"
+         class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 sm:gap-3
+            w-full sm:w-auto pointer-events-none">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
                 {% for category, message in messages %}
-                    <li><strong>{{ category.title() }}:</strong> {{ message }}</li>
+                    {{ ui.toast(message, category, auto_ms=2000) }}
                 {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
-    {% block content %}{% endblock %}
 </main>
 
-<footer>
-    <p>&copy; {{ config.SITE_NAME if config.SITE_NAME else "My Site" }} {{ current_year|default(2025) }}</p>
-</footer>
+{% block content %}{% endblock %}
+
+{% include 'partials/footer.html' %}
 
 {# Place to inject scripts at the end of body #}
+
+    
 {% block scripts %}{% endblock %}
+
+<script src="{{ url_for('static', filename='js/navbar.js') }}" defer></script>
 </body>
 </html>

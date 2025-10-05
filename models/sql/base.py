@@ -34,18 +34,7 @@ from sqlalchemy.dialects.postgresql import CITEXT, JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import Computed
 
-# ---------- Naming convention (stable Alembic diffs)
-naming_convention = {
-    "ix": "ix_%(table_name)s_%(column_0_N_name)s",
-    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
-    "ck": "ck_%(table_name)s_%(constraint_name)s",
-    "fk": "fk_%(table_name)s_%(column_0_N_name)s_%(referred_table_name)s",
-    "pk": "pk_%(table_name)s",
-}
-
-
-class Base(DeclarativeBase):
-    metadata = MetaData(naming_convention=naming_convention)
+from models import Base
 
 
 # ---------- Mixins
@@ -59,7 +48,6 @@ class TimestampMixin:
         onupdate=func.now(),
         nullable=False,
     )
-
 
 # ---------- Role bits (bit flags)
 class RoleBits(IntFlag):
@@ -91,6 +79,10 @@ class User(UserMixin, TimestampMixin, Base):
 
     __table_args__ = (
         Index("ix_users_active", "is_active"),
+        dict(
+            schema="auth",
+            comment="User accounts with roles, 2FA, sessions, tokens, and related info",
+        )
     )
 
     # convenience helpers
@@ -129,7 +121,7 @@ class Address(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
     )
 
     # Minimal, normalized enough for India-first; extensible globally
@@ -155,6 +147,10 @@ class Address(TimestampMixin, Base):
         ),
         Index("ix_addresses_user", "user_id"),
         Index("ix_addresses_postal", "postal_code"),
+        dict(
+            schema="auth",
+            comment="User addresses; multiple per user, one primary",
+        )
     )
 
 
@@ -164,7 +160,7 @@ class TwoFactorCredential(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
     )
     method: Mapped[TwoFAMethod] = mapped_column(SQLEnum(TwoFAMethod, name="twofa_method"), nullable=False)
 
@@ -192,9 +188,12 @@ class TwoFactorCredential(TimestampMixin, Base):
 
     __table_args__ = (
         # A user can have multiple 2FA methods; but only one active per method if you wish—enforce with partial unique
-        Index("ux_twofa_user_method_enabled", "user_id", "method",
-              unique=True, postgresql_where=text("enabled = true")),
+        Index("ux_twofa_user_method_enabled", "user_id", "method", unique=True, postgresql_where=text("enabled = true and verified_at is not null")),
         Index("ix_twofa_user", "user_id"),
+        dict(
+            schema="auth",
+            comment="User two-factor authentication credentials (TOTP, SMS, Email)",
+        )
     )
 
 
@@ -204,7 +203,7 @@ class UserSession(TimestampMixin, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
     )
 
     # Store only a hash of refresh token/server session id
@@ -223,6 +222,10 @@ class UserSession(TimestampMixin, Base):
     __table_args__ = (
         Index("ix_sessions_user", "user_id"),
         Index("ix_sessions_expires", "expires_at"),
+        dict(
+            schema="auth",
+            comment="User sessions or refresh tokens; one active per device/browser",
+        )
     )
 
 
@@ -232,7 +235,7 @@ class UserToken(TimestampMixin, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("auth.users.id", ondelete="CASCADE"), nullable=False
     )
 
     purpose: Mapped[TokenPurpose] = mapped_column(SQLEnum(TokenPurpose, name="user_token_purpose"), nullable=False)
@@ -251,6 +254,10 @@ class UserToken(TimestampMixin, Base):
         Index("ix_usertokens_user", "user_id"),
         Index("ix_usertokens_purpose", "purpose"),
         Index("ix_usertokens_expires", "expires_at"),
+        dict(
+            schema="auth",
+            comment="Short-lived user tokens for email verification, password reset, etc.",
+        )
     )
 
 
@@ -282,6 +289,10 @@ class DeletedUser(TimestampMixin, Base):
     __table_args__ = (
         Index("ix_deleted_users_email", "email"),
         Index("ix_deleted_users_deleted_at", "deleted_at"),
+        dict(
+            schema="auth",
+            comment="Archive of deleted users for audit/compliance; minimal PII only",
+        )
     )
 
 
@@ -307,7 +318,7 @@ class BlogPost(TimestampMixin, Base):
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # author
-    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("auth.users.id", ondelete="SET NULL"), nullable=True)
     author: Mapped[Optional[User]] = relationship(back_populates="posts")
 
     # Postgres generated column for full-text search
@@ -325,6 +336,10 @@ class BlogPost(TimestampMixin, Base):
         # quick listings
         Index("ix_blog_posts_published", "is_published", "published_at"),
         CheckConstraint("char_length(slug) >= 3", name="slug_min_len"),
+        dict(
+            schema="content",
+            comment="Blog posts or articles with markdown content, author, publish state, and full-text search",
+        )
     )
 
     def __repr__(self) -> str:

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Register 2FA{% endblock %}
+
+{% block content %}
+
+    {% if status == 200 %}
+        <div class="max-w-md mx-auto mt-10 bg-white shadow rounded p-6">
+            <h1 class="text-xl font-semibold mb-4">2FA Enabled Successfully</h1>
+
+            <p class="mb-4">Two-Factor Authentication (2FA) has been successfully enabled for your account.</p>
+
+        </div>
+    {% elif status == 400 %}
+        <div class="max-w-md mx-auto mt-10 bg-white shadow rounded p-6">
+            <h1 class="text-xl font-semibold mb-4 text-red-600">Error Enabling 2FA</h1>
+
+            <p class="mb-4 text-red-600">There was an error enabling Two-Factor Authentication (2FA) for your account. Please try again.</p>
+
+        </div>
+    {% endif %}
+
+{% endblock %}

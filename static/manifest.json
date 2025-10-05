@@ -1,0 +1,24 @@
+{
+  "name": "Bodhgriha Yoga",
+  "short_name": "Bodhgriha",
+  "description": "Yoga teacher training and courses.",
+  "lang": "en-US",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c5741",
+  "theme_color": "#0c5741",
+  "icons": [
+    {
+      "src": "icons/icon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icons/icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

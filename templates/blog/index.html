@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{# ========================================= #}
+{# 🎨 COMPOSABLE STYLES CONFIGURATION       #}
+{# ========================================= #}
+{% set blog_styles = {
+  'hero': {
+    'section': blog_hero_section_class|default('relative isolate overflow-hidden bg-[#0c5741] min-h-[50vh]'),
+    'container': blog_hero_container_class|default('container mx-auto max-w-6xl px-6 sm:px-8 py-16 sm:py-20 text-center'),
+    'title': blog_hero_title_class|default('text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white'),
+    'subtitle': blog_hero_subtitle_class|default('mt-4 text-base sm:text-lg text-white/70 max-w-3xl mx-auto')
+  },
+  'grid': {
+    'section': blog_grid_section_class|default('container mx-auto max-w-6xl px-6 sm:px-8 py-12'),
+    'container': blog_grid_container_class|default('grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3'),
+    'card': blog_card_class|default('group relative rounded-[.5rem] border border-black/10 bg-black/5 backdrop-blur-md shadow-sm hover:shadow-xl hover:border-black/20 transition-all duration-300 overflow-hidden'),
+    'card_link': blog_card_link_class|default('absolute inset-0 z-10')
+  },
+  'image': {
+    'figure': blog_image_figure_class|default('relative overflow-hidden rounded-[.5rem]'),
+    'img': blog_image_img_class|default('h-48 w-full object-cover'),
+  },
+  'content': {
+    'wrapper': blog_content_wrapper_class|default('p-6 flex flex-col gap-3'),
+    'title': blog_content_title_class|default('text-lg sm:text-xl font-semibold tracking-tight text-black'),
+    'title_link': blog_content_title_link_class|default('relative z-20 group-hover:underline'),
+    'meta': blog_content_meta_class|default('flex flex-wrap items-center gap-3 text-xs text-black/60'),
+    'meta_item': blog_content_meta_item_class|default('inline-flex items-center gap-2'),
+    'meta_icon': blog_content_meta_icon_class|default('h-4 w-4 opacity-70'),
+    'description': blog_content_description_class|default('text-sm text-black/80 leading-relaxed line-clamp-3'),
+    'tags_wrapper': blog_content_tags_wrapper_class|default('mt-2 flex flex-wrap gap-2'),
+    'tag': blog_content_tag_class|default('inline-flex items-center rounded-full bg-black/10 px-3 py-1 text-[11px] font-medium text-black/75 ring-1 ring-black/15'),
+    'read_more': blog_content_read_more_class|default('mt-1 flex items-center gap-2 text-[#0c5741] text-sm font-medium'),
+    'read_more_text': blog_content_read_more_text_class|default('relative z-20'),
+    'read_more_icon': blog_content_read_more_icon_class|default('h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5')
+  },
+  'empty': {
+    'wrapper': blog_empty_wrapper_class|default('col-span-full'),
+    'container': blog_empty_container_class|default('rounded-2xl border border-black/10 bg-black/5 p-10 text-center'),
+    'title': blog_empty_title_class|default('text-lg font-semibold text-black'),
+    'description': blog_empty_description_class|default('mt-2 text-sm text-black/70')
+  }
+} %}
+
+{# Color variables for CSS custom properties #}
+{% set blog_colors = {
+  'brand_primary': brand_primary|default('#0c5741'),
+  'accent_color': blog_accent_color|default('#14b8a6'),
+  'text_primary': blog_text_primary|default('#ffffff'),
+  'text_secondary': blog_text_secondary|default('#ffffff80'),
+  'background_primary': blog_background_primary|default('#0f172a'),
+  'background_secondary': blog_background_secondary|default('#1e293b')
+} %}
+
+<style>
+:root {
+  --brand-primary: {{ blog_colors.brand_primary }};
+  --blog-accent: {{ blog_colors.accent_color }};
+  --blog-text-primary: {{ blog_colors.text_primary }};
+  --blog-text-secondary: {{ blog_colors.text_secondary }};
+  --blog-bg-primary: {{ blog_colors.background_primary }};
+  --blog-bg-secondary: {{ blog_colors.background_secondary }};
+}
+</style>
+
+{% block title %}{{ blog_page_title|default('Bodhgriha Blog') }}{% endblock %}
+
+{% block description %}
+{{ blog_page_description|default('Explore insightful articles, tips, and stories on authentic yoga experiences, retreats, and workshops worldwide on the Bodhgriha Blog.') }}
+{% endblock %}
+
+{% block content %}
+
+<section class="relative">
+  <!-- Hero -->
+  <header class="{{ blog_styles.hero.section }} relative overflow-hidden">
+    <!-- Video Background -->
+    <video 
+      class="absolute inset-0 w-full h-full object-cover"
+      autoplay 
+      muted 
+      loop 
+      playsinline
+      style="filter: saturate(.8);">
+      <source src="{{ url_for('static', filename='videos/blog-index.mov') }}" type="video/mp4">
+      <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
+      <!-- Fallback image if video fails to load -->
+      <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" 
+           style="background-image: url('{{ blog_hero_image_url | default(url_for('static', filename='images/blog/index.jpeg')) }}');"></div>
+    </video>
+    
+    <div class="absolute inset-0 bg-gradient-to-br from-teal-900/30 via-emerald-800/25 to-slate-900/40"></div>
+    <div class="{{ blog_styles.hero.container }} relative z-10">
+      <h1 class="{{ blog_styles.hero.title }}">
+        {{ blog_hero_title|default('Bodhgriha Blog') }}
+      </h1>
+      <p class="{{ blog_styles.hero.subtitle }}">
+        {{ blog_hero_subtitle|default('Explore insightful articles, tips, and stories on authentic yoga experiences, retreats, and workshops worldwide.') }}
+      </p>
+    </div>
+  </header>
+
+  <!-- Grid -->
+  <section class="{{ blog_styles.grid.section }}">
+    <div class="{{ blog_styles.grid.container }}">
+      {% for post in posts %}
+        {% set desc = (post.meta.description or post.body_text)[:220] %}
+        <article class="{{ blog_styles.grid.card }}">
+          <a href="{{ url_for('blog.view_blog', slug=post.slug) }}" class="{{ blog_styles.grid.card_link }}" aria-label="{{ post.title }}"></a>
+
+          {% if post.meta and post.meta.hero_image %}
+          <figure class="{{ blog_styles.image.figure }}">
+          
+            <img
+              src="{{ post.meta.hero_image }}"
+              alt="{{ post.title }}"
+              class="{{ blog_styles.image.img }}"
+              loading="lazy"
+              decoding="async">
+          
+          </figure>
+          {% endif %}
+
+          <div class="{{ blog_styles.content.wrapper }}">
+            <h2 class="{{ blog_styles.content.title }}">
+              <span class="{{ blog_styles.content.title_link }}">{{ post.title }}</span>
+            </h2>
+
+            <div class="{{ blog_styles.content.meta }}">
+              {% if post.meta and post.meta.author %}
+                <span class="{{ blog_styles.content.meta_item }}">
+                  <svg class="{{ blog_styles.content.meta_icon }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/>
+                  </svg>
+                  <span>{{ post.meta.author }}</span>
+                </span>
+              {% endif %}
+
+              {% if post.published_at %}
+                <span class="{{ blog_styles.content.meta_item }}">
+                  <svg class="{{ blog_styles.content.meta_icon }}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2Zm14 8H3v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2Z"/>
+                  </svg>
+                  <time datetime="{{ post.published_at.isoformat() }}">{{ post.published_at.strftime('%b %d, %Y') }}</time>
+                </span>
+              {% endif %}
+
+              {% if post.meta and post.meta.reading_time %}
+                <span aria-hidden="true">•</span>
+                <span>{{ post.meta.reading_time }} min read</span>
+              {% endif %}
+            </div>
+
+            <p class="{{ blog_styles.content.description }}">
+              {{ desc }}
+            </p>
+
+            <div class="{{ blog_styles.content.tags_wrapper }}">
+              {% if post.meta and post.meta.tags %}
+                {% for t in post.meta.tags[:3] %}
+                  <span class="{{ blog_styles.content.tag }}">
+                    #{{ t }}
+                  </span>
+                {% endfor %}
+              {% endif %}
+            </div>
+
+            <div class="{{ blog_styles.content.read_more }}">
+              <span class="{{ blog_styles.content.read_more_text }}">{{ blog_read_more_text|default('Read more') }} →</span>
+            </div>
+          </div>
+        </article>
+      {% else %}
+        <div class="{{ blog_styles.empty.wrapper }}">
+          <div class="{{ blog_styles.empty.container }}">
+            <h3 class="{{ blog_styles.empty.title }}">{{ blog_empty_title|default('No blog posts yet') }}</h3>
+            <p class="{{ blog_styles.empty.description }}">{{ blog_empty_description|default('Check back soon for fresh perspectives on yoga, retreats, and mindful living.') }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+
+{% endblock %}

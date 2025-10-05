@@ -8,10 +8,18 @@ def register_views(app: Flask) -> None:
     Attach all blueprints to the Flask app.
     Keep this as the single entry point for route registration.
     """
-    # Admin
-    from .admin.user import bp as user_bp
-    app.register_blueprint(user_bp, url_prefix="/admin/user")
-
     # Example: blog blueprint
-    from .admin.blog import bp as blog_bp
-    app.register_blueprint(blog_bp, url_prefix="/admin/blog")
+    from .blog.base import bp as blog_bp
+    app.register_blueprint(blog_bp, url_prefix="/blog")
+
+    # Auth
+    from .auth.user import bp as auth_bp
+    app.register_blueprint(auth_bp, url_prefix="/auth")
+
+    # UI
+    from .ui.base import bp as ui_bp
+    app.register_blueprint(ui_bp, url_prefix="/ui")
+
+    # Admin - Users
+    from .admin.school import bp as school_bp
+    app.register_blueprint(school_bp, url_prefix="/admin/schools")
