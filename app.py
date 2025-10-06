@@ -149,8 +149,56 @@ def create_app():
     @app.route('/')
     def index():
         from utilities.navbar_loader import get_navbar_context
+        from views.content.listings import Listing
+            # Dummy data for listings
+        listings = [
+            Listing(
+                id=1,
+                title="4 Day Refreshing Yoga Retreat with Meditation and Guided Walks in Alicante, Costa Blanca, Spain",
+                snippet="Experience a rejuvenating 4-day yoga retreat in the serene landscapes of Alicante, Costa Blanca. Enjoy daily yoga sessions, meditation practices, and guided nature walks. Perfect for all levels.",
+                href="/retreats/1",
+                image_url=url_for('static', filename='images/blog/2.jpeg'),
+                image_alt="Retreat group practicing yoga outdoors",
+                country="Spain",
+                country_flag_emoji="🇪🇸",
+                city="Alicante",
+                region="Costa Blanca",
+                duration_days=4,
+                persons=1,
+                available_all_year=True,
+                perks=["Airport transfer included", "All meals included", "Vegetarian friendly", "Instructed in English"],
+                interested_count=28,
+                rating_value=4.5,
+                rating_count=610,
+                price_from=563.0,
+                currency="$ USD"
+            ),
+            Listing(
+                id=2,
+                title="7 Day Yoga and Wellness Retreat in Bali, Indonesia",
+                snippet="Join us for a transformative 7-day yoga and wellness retreat in the heart of Bali. Immerse yourself in daily yoga practices, holistic wellness workshops, and explore the vibrant culture of Bali.",
+                href="/retreats/2",
+                image_url=url_for('static', filename='images/blog/1.jpeg'),
+                image_alt="Yoga session at a beachside retreat",
+                country="Indonesia",
+                country_flag_emoji="🇮🇩",
+                city="Ubud",
+                region="Bali",
+                duration_days=7,
+                persons=1,
+                available_all_year=False,
+                perks=["Airport transfer included", "All meals included", "Vegan options available", "Instructed in English"],
+                interested_count=45,
+                rating_value=4.8,
+                rating_count=890,
+                price_from=1200.0,
+                currency="$ USD"
+            )
+        ]
+
         return render_template(
             "index.html",
+            listings=listings,
             **_context()
         )
 

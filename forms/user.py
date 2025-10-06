@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField, SelectField
 from wtforms.validators import DataRequired, Email, Length, Optional
 
 
@@ -112,3 +112,62 @@ class RegisterTOTPForm(FlaskForm):
         description="Enter the 2FA code from your authenticator app"
     )
     submit = SubmitField("Enable 2FA")
+
+
+
+def valid_countries():
+    # Example list; in a real app, use a comprehensive list or a library
+    return [
+        ('IN', 'India'),
+        ('US', 'United States'),
+        ('GB', 'United Kingdom'),
+        ('CA', 'Canada'),
+        ('AU', 'Australia'),
+        ('FR', 'France'),
+        ('DE', 'Germany'),
+        ('JP', 'Japan'),
+        ('CN', 'China'),
+    ]
+
+
+class AddressForm(FlaskForm):
+    """Form to create or update a user address."""
+
+    id = HiddenField()
+    user_id = HiddenField()
+
+    line1 = StringField(
+        "Address line 1",
+        validators=[DataRequired(), Length(max=255)],
+    )
+
+    line2 = StringField(
+        "Address line 2",
+        validators=[Optional(), Length(max=255)],
+    )
+
+    city = StringField(
+        "City",
+        validators=[DataRequired(), Length(max=120)],
+    )
+
+    state = StringField(
+        "State / Province",
+        validators=[Optional(), Length(max=120)],
+    )
+
+    postal_code = StringField(
+        "Postal code",
+        validators=[DataRequired(), Length(max=20)],
+    )
+
+    country_iso2 = SelectField(
+        "Country",
+        validators=[DataRequired(), Length(min=2, max=2)],
+        choices=valid_countries(),
+        description="Select your country"
+    )
+
+    is_primary = BooleanField("Primary address")
+
+    submit = SubmitField("Save address")

@@ -1,5 +1,45 @@
 {% extends "base.html" %}
 
+{% block head %}
+<style>
+/* CSS-only scroll reveal for Goal cards */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(4rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  #goal-section [data-animate-card] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Desktop/tablet only; mobile loads immediately */
+@media (min-width: 768px) {
+  @supports (animation-timeline: view()) {
+    #goal-section [data-animate-card] {
+      animation-name: fade-up;
+      animation-duration: 0.7s;
+      animation-timing-function: ease-out;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 30%;
+    }
+    /* Staggered delays */
+    #goal-section [data-animate-card]:nth-child(1) { animation-delay: 5000ms; }
+    #goal-section [data-animate-card]:nth-child(2) { animation-delay: 5000ms; }
+    #goal-section [data-animate-card]:nth-child(3) { animation-delay: 5000ms; }
+    #goal-section [data-animate-card]:nth-child(4) { animation-delay: 5000ms; }
+    #goal-section [data-animate-card]:nth-child(5) { animation-delay: 5000ms; }
+    #goal-section [data-animate-card]:nth-child(6) { animation-delay: 5000ms; }
+  }
+}
+</style>
+{% endblock %}
+
 {# ========================================= #}
 {# 🎨 COMPOSABLE STYLES CONFIGURATION       #}
 {# ========================================= #}
@@ -99,7 +139,7 @@
     </section>
 
     <!-- Our Goal -->
-    <section class="{{ styles.slate_section }}">
+    <section class="{{ styles.slate_section }}" id="goal-section">
         <div class="{{ styles.section.wide_container }}">
             <h2 class="{{ styles.section.title_black }}">
                 {{ content.sections.goal.title }}
@@ -113,7 +153,7 @@
 
             <div class="{{ styles.grid.two_col }}">
                 {% for card in content.goal_cards %}
-                <div class="{{ styles.card.base }}">
+                <div class="{{ styles.card.base }}" data-animate-card>
                     <h3 class="{{ styles.card.title }}">{{ card.title }}</h3>
                     <p class="{{ styles.card.text }}">
                         {{ card.text }}

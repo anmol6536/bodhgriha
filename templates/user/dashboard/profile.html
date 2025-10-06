@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Your Profile - Bodhgriha{% endblock %}
+
+{% block description %}Review the core details attached to your Bodhgriha account.{% endblock %}
+
+{% block content %}
+{% set is_authenticated = current_user.is_authenticated %}
+{% set user_name = current_user.first_name or current_user.name or (current_user.email|default('Guest')|split('@')|first) if is_authenticated else 'Guest' %}
+{% set member_since = current_user.created_at.strftime('%b %d, %Y') if is_authenticated and current_user.created_at else 'Not available' %}
+{% set last_updated = current_user.updated_at.strftime('%b %d, %Y') if is_authenticated and current_user.updated_at else 'Not available' %}
+{% if addresses is not defined %}
+    {% if is_authenticated %}
+        {% set addresses = current_user.addresses or [] %}
+    {% else %}
+        {% set addresses = [] %}
+    {% endif %}
+{% endif %}
+{% set testimonials = testimonials if testimonials is defined else [] %}
+{% set owned_schools = owned_schools if owned_schools is defined else [] %}
+{% set teaching_courses = teaching_courses if teaching_courses is defined else [] %}
+
+{% set role_display = "Guest" %}
+{% if is_authenticated %}
+    {% set role_map = [
+        {"bit": 1, "label": "Member"},
+        {"bit": 2, "label": "Instructor"},
+        {"bit": 4, "label": "Editor"},
+        {"bit": 8, "label": "Staff"},
+        {"bit": 16, "label": "Admin"}
+    ] %}
+    {% set role_bits_value = (current_user.role_bits|default(0, true))|int %}
+    {% set ns = namespace(labels=[]) %}
+    {% for role in role_map %}
+        {% if role_bits_value and ((role_bits_value // role.bit) % 2 == 1) %}
+            {% set _ = ns.labels.append(role.label) %}
+        {% endif %}
+    {% endfor %}
+    {% set role_display = ns.labels|join(", ") if ns.labels else "Member" %}
+{% endif %}
+
+{% set address_count = addresses|length %}
+{% set testimonial_count = testimonials|length %}
+{% set school_count = owned_schools|length %}
+
+<section class="relative isolate py-16">
+    <div class="absolute inset-0 -z-20 bg-cover bg-center" style="background-image: url('{{ url_for('static', filename='images/dashboard.jpeg') }}');"></div>
+    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-950/60 via-slate-900/40 to-emerald-900/60"></div>
+
+    <div class="relative mx-auto flex max-w-7xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
+        <header class="rounded-3xl border border-white/10 bg-white/10 p-8 text-white shadow-2xl shadow-emerald-950/40 backdrop-blur-2xl">
+            <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-sm uppercase tracking-[0.3em] text-white/70">Profile</p>
+                    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">Hello, {{ user_name }}.</h1>
+                    <p class="mt-3 max-w-2xl text-base text-white/70">
+                        This page reflects the information currently stored for your Bodhgriha account. Expand the backend context to expose additional data over time.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <a href="#" class="rounded-full border border-white/20 bg-white/15 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/25 focus:outline-none focus-visible:ring focus-visible:ring-white/60">
+                        Manage account
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="rounded-full bg-emerald-400 px-5 py-2 text-sm font-medium text-emerald-950 transition hover:bg-emerald-300 focus:outline-none focus-visible:ring focus-visible:ring-emerald-200">
+                        Sign out
+                    </a>
+                </div>
+            </div>
+
+            <dl class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl">
+                    <dt class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Member since</dt>
+                    <dd class="mt-2 text-2xl font-semibold text-white">{{ member_since }}</dd>
+                    <p class="mt-1 text-sm text-white/60">Account creation timestamp</p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl">
+                    <dt class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Status</dt>
+                    <dd class="mt-2 text-2xl font-semibold text-white">
+                        {% if is_authenticated and current_user.is_active %}
+                            Active
+                        {% elif is_authenticated %}
+                            Inactive
+                        {% else %}
+                            Guest
+                        {% endif %}
+                    </dd>
+                    <p class="mt-1 text-sm text-white/60">Reflects auth.users.is_active</p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl">
+                    <dt class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Saved addresses</dt>
+                    <dd class="mt-2 text-2xl font-semibold text-white">{{ address_count }}</dd>
+                    <p class="mt-1 text-sm text-white/60">Records from auth.addresses</p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl">
+                    <dt class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Testimonials</dt>
+                    <dd class="mt-2 text-2xl font-semibold text-white">{{ testimonial_count }}</dd>
+                    <p class="mt-1 text-sm text-white/60">Linked entries in content.testimonials</p>
+                </div>
+            </dl>
+        </header>
+
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-[320px,1fr]">
+            <aside class="space-y-4">
+                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 text-lg font-semibold text-white">
+                            {{ user_name|default('?', true)|trim|first|upper }}
+                        </div>
+                        <div class="space-y-2">
+                            <h2 class="text-xl font-semibold text-white">{{ user_name }}</h2>
+                            <p class="text-sm text-white/70">{{ current_user.email if is_authenticated else 'No email on file' }}</p>
+                        </div>
+                    </div>
+                    <dl class="mt-6 space-y-3">
+                        {% if is_authenticated %}
+                            <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                <dt class="text-xs uppercase tracking-[0.2em] text-white/60">Full name</dt>
+                                <dd class="mt-1 text-sm font-medium text-white">
+                                    {{ current_user.first_name }} {{ current_user.last_name }}
+                                </dd>
+                            </div>
+                        {% endif %}
+                        <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                            <dt class="text-xs uppercase tracking-[0.2em] text-white/60">Roles</dt>
+                            <dd class="mt-1 text-sm font-medium text-white">{{ role_display }}</dd>
+                        </div>
+                        {% if is_authenticated %}
+                            <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                <dt class="text-xs uppercase tracking-[0.2em] text-white/60">User id</dt>
+                                <dd class="mt-1 text-sm font-medium text-white">{{ current_user.id }}</dd>
+                            </div>
+                        {% endif %}
+                        <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                            <dt class="text-xs uppercase tracking-[0.2em] text-white/60">Last updated</dt>
+                            <dd class="mt-1 text-sm font-medium text-white">{{ last_updated }}</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                    <h3 class="text-base font-semibold text-white">Additional profile data</h3>
+                    {% if is_authenticated and current_user.meta %}
+                        <dl class="mt-4 space-y-3">
+                            {% for key, value in current_user.meta.items() %}
+                                <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                    <dt class="text-xs uppercase tracking-[0.2em] text-white/60">{{ key }}</dt>
+                                    <dd class="mt-1 text-sm text-white/80">
+                                        {% if value is mapping %}
+                                            {{ value|tojson }}
+                                        {% elif value is sequence and value is not string %}
+                                            {{ value|join(", ") }}
+                                        {% else %}
+                                            {{ value }}
+                                        {% endif %}
+                                    </dd>
+                                </div>
+                            {% endfor %}
+                        </dl>
+                    {% else %}
+                        <p class="mt-4 text-sm text-white/70">No meta fields stored for this account yet.</p>
+                    {% endif %}
+                </section>
+            </aside>
+
+            <div class="space-y-6">
+                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-white">Saved addresses</h2>
+                            <p class="text-sm text-white/70">Entries load from auth.addresses.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring focus-visible:ring-white/40"
+                                hx-get="{{ url_for('user.profile_address_modal') }}"
+                                hx-target="#address-modal-container"
+                                hx-trigger="click"
+                                hx-swap="innerHTML">
+                                Add address
+                            </button>
+                        </div>
+                    </div>
+                    {% if address_count %}
+                        <ul class="mt-6 space-y-4">
+                            {% for address in addresses %}
+                                <li class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p class="text-sm font-medium text-white">
+                                        {{ address.line1 }}
+                                        {% if address.line2 %}, {{ address.line2 }}{% endif %}
+                                    </p>
+                                    <p class="text-sm text-white/70">
+                                        {{ address.city }}, {% if address.state %}{{ address.state }}, {% endif %}{{ address.postal_code }} - {{ address.country_iso2|upper }}
+                                    </p>
+                                    <p class="mt-2 text-xs uppercase tracking-[0.2em] text-white/60">
+                                        {% if address.is_primary %}Primary - {% endif %}Updated {{ address.updated_at.strftime('%b %d, %Y') if address.updated_at else 'Not available' }}
+                                    </p>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring focus-visible:ring-white/40"
+                                            hx-get="{{ url_for('user.profile_address_modal', address_id=address.id) }}"
+                                            hx-target="#address-modal-container"
+                                            hx-trigger="click"
+                                            hx-swap="innerHTML">
+                                            Edit address
+                                        </button>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="mt-6 text-sm text-white/70">No addresses have been saved yet.</p>
+                    {% endif %}
+                </section>
+
+                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-white">Testimonials</h2>
+                            <p class="text-sm text-white/70">Testimonials authored by this user in content.testimonials.</p>
+                        </div>
+                    </div>
+                    {% if testimonial_count %}
+                        <ul class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                            {% for testimonial in testimonials %}
+                                <li class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-white/60">
+                                        Rating {{ testimonial.rating if testimonial.rating is not none else 'Not set' }} of 5
+                                    </p>
+                                    <h3 class="mt-2 text-lg font-semibold text-white">{{ testimonial.title }}</h3>
+                                    <p class="mt-2 text-sm text-white/70">{{ testimonial.description }}</p>
+                                    <div class="mt-3 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.2em] text-white/60">
+                                        <span>{{ testimonial.school.name if testimonial.school is defined and testimonial.school else 'School not linked' }}</span>
+                                        {% if testimonial.published_at %}
+                                            <span>Published {{ testimonial.published_at.strftime('%b %d, %Y') }}</span>
+                                        {% else %}
+                                            <span>{% if testimonial.is_published %}Published{% else %}Draft{% endif %}</span>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="mt-6 text-sm text-white/70">No testimonials linked to this account yet.</p>
+                    {% endif %}
+                </section>
+
+                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-white">Schools and courses</h2>
+                            <p class="text-sm text-white/70">Ownership is derived from admin.schools.owner_id. Teaching assignments use courses.course_instructors.</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">Owned schools ({{ school_count }})</h3>
+                            {% if school_count %}
+                                <ul class="space-y-3">
+                                    {% for school in owned_schools %}
+                                        <li class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                            <p class="text-sm font-semibold text-white">{{ school.name }}</p>
+                                            <p class="text-sm text-white/70">{{ school.email }}</p>
+                                            <p class="mt-2 text-xs uppercase tracking-[0.2em] text-white/60">
+                                                {% if school.is_verified %}Verified{% else %}Pending verification{% endif %} -
+                                                {% if school.is_active %}Active{% else %}Inactive{% endif %}
+                                            </p>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-sm text-white/70">No schools associated with this user.</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">Courses teaching ({{ teaching_courses|length }})</h3>
+                            {% if teaching_courses %}
+                                <ul class="space-y-3">
+                                    {% for course in teaching_courses %}
+                                        <li class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                            <p class="text-sm font-semibold text-white">{{ course.title }}</p>
+                                            <p class="text-sm text-white/70">{{ course.school.name if course.school is defined and course.school else 'School not linked' }}</p>
+                                            <p class="mt-2 text-xs uppercase tracking-[0.2em] text-white/60">
+                                                {% if course.start_date %}
+                                                    Starts {{ course.start_date.strftime('%b %d, %Y') }}
+                                                {% else %}
+                                                    Schedule to be announced
+                                                {% endif %}
+                                            </p>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-sm text-white/70">No teaching assignments for this account.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</section>
+<div id="address-modal-container"></div>
+{% endblock %}

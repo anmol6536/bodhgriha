@@ -1,28 +1,24 @@
 {% extends "base.html" %}
+{% from "ui/macros/listing.html" import listing_card %}
 
 {% block title %}Register Blog{% endblock %}
 
 {% block content %}
 
-    <div class="max-w-md mx-auto mt-10 bg-white shadow rounded p-6">
-        <h1 class="text-xl font-semibold mb-4">Register</h1>
-        {% from "ui/macros/form.html" import render_form %}
-
-        {{ render_form(form,
-                action=url_for('auth.register'),
-                method='POST',
-                submit_label='Log In',
-                field_order=['first_name', 'last_name', 'email','password'],
-                help_texts={
-                'totp_code': 'Enter the 6-digit code from your authenticator app (if enabled).'
-                },
-                extra_attrs={
-                'email':     {'autocomplete':'email', 'placeholder':'you@example.com'},
-                'password':  {'autocomplete':'current-password', 'placeholder':'Your password'}
-                },
-                submit_classes='w-full inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500',
-                grid_classes='grid grid-cols-1 sm:grid-cols-1 gap-4'
-                ) }}
-    </div>
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <h1 class="text-3xl font-bold mb-6">Search Results for "{{ query }}"</h1>
+    {% if listings %}
+        {% for listing in listings %}
+            <div class="mb-4">
+            {{
+                listing_card(listing)
+            }}
+            </div>
+        {% endfor %}
+        
+    {% else %}
+        <p class="text-gray-600">No results found for "{{ query }}". Please try different keywords.</p>
+    {% endif %}
+</div>
 
 {% endblock %}

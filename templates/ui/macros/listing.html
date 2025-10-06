@@ -1,0 +1,156 @@
+{# templates/macros/listing_card.html #}
+{% macro listing_card(listing) %}
+{# expected keys (see usage notes below) #}
+{# listing = {
+  "href": "/retreats/slug-or-id",
+  "title": "4 Day Refreshing Yoga Retreat with Meditation and Guided Walks in Alicante, Costa Blanca, Spain",
+  "image_url": "https://…/cover.jpg",
+  "image_alt": "Retreat group practicing yoga outdoors",
+  "country": "Spain",
+  "country_flag_emoji": "🇪🇸",
+  "city": "Alicante",
+  "region": "Costa Blanca",
+  "duration_days": 4,
+  "persons": 1,
+  "available_all_year": true,
+  "perks": ["Airport transfer included","All meals included","Vegetarian friendly","Instructed in English"],
+  "interested_count": 28,
+  "rating_value": 4.5,
+  "rating_count": 610,
+  "price_from": 563.0,
+  "currency": "USD"
+} #}
+
+<article class="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
+  <a href="{{ listing.href or '#' }}" class="absolute inset-0" aria-label="{{ listing.title | e }}"></a>
+
+  <div class="grid grid-cols-1 md:grid-cols-[2fr,3fr]">
+    {# Cover image #}
+    <div class="relative">
+      <img
+        src="{{ listing.image_url }}"
+        alt="{{ listing.image_alt or (listing.title ~ ' cover image') }}"
+        class="h-52 w-full object-cover md:h-full"
+        loading="lazy">
+      {# wishlist button placeholder #}
+      <button type="button"
+              class="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow hover:bg-white"
+              aria-label="Save to wishlist">
+        <!-- Heart icon -->
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 21s-6.7-4.35-9.33-7A5.66 5.66 0 1 1 12 6.67 5.66 5.66 0 1 1 21.33 14c-2.63 2.65-9.33 7-9.33 7z"/>
+        </svg>
+      </button>
+    </div>
+
+    {# Right content #}
+    <div class="flex flex-col gap-3 p-4 md:p-5">
+      {# Country + Title #}
+      <div class="flex items-center gap-2 text-xs font-medium text-gray-600">
+        {% if listing.country_flag_emoji %}
+          <span class="text-base leading-none">{{ listing.country_flag_emoji }}</span>
+        {% endif %}
+        {% if listing.country %}
+          <span class="uppercase tracking-wide">{{ listing.country }}</span>
+        {% endif %}
+      </div>
+
+      <h3 class="line-clamp-2 text-lg font-semibold text-gray-900 group-hover:text-gray-800">
+        {{ listing.title }}
+      </h3>
+
+      {# Perks / bullets #}
+      {% if listing.perks %}
+        <ul class="flex flex-wrap gap-x-3 gap-y-1 text-sm text-gray-600">
+          {% for perk in listing.perks[:4] %}
+            <li class="relative pl-4">
+              <span class="absolute left-0 top-1.5 block h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+              {{ perk }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {# Meta row: interested + rating #}
+      <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+        {% if listing.interested_count is not none %}
+          <span class="inline-flex items-center gap-1">
+            <!-- Eye icon -->
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            {{ listing.interested_count }} interested
+          </span>
+        {% endif %}
+
+        {% if listing.rating_value %}
+          <span class="inline-flex items-center gap-1">
+            <!-- Star -->
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor">
+              <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+            <span>{{ '%.1f'|format(listing.rating_value) }}</span>
+            {% if listing.rating_count %}<span class="text-gray-400">({{ listing.rating_count }})</span>{% endif %}
+          </span>
+        {% endif %}
+      </div>
+
+      {# Badges row: persons, duration, availability #}
+      <div class="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+        {% if listing.persons %}
+          <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1">
+            <!-- Users icon -->
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            {{ listing.persons }} person{{ 1 if listing.persons==1 else 's' }}
+          </span>
+        {% endif %}
+
+        {% if listing.duration_days %}
+          <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1">
+            <!-- Calendar icon -->
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <path d="M16 2v4M8 2v4M3 10h18"/>
+            </svg>
+            {{ listing.duration_days }} day{{ 1 if listing.duration_days==1 else 's' }}
+          </span>
+        {% endif %}
+
+        {% if listing.available_all_year %}
+          <span class="inline-flex items-center gap-1 rounded-full bg-green-50 text-green-700 px-2.5 py-1">
+            <!-- Infinity icon -->
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M18 8a5 5 0 0 0-4 2l-4 4a5 5 0 1 1 0-8l4 4a5 5 0 1 0 4-2z"/>
+            </svg>
+            Available all year
+          </span>
+        {% endif %}
+      </div>
+
+      {# Footer price #}
+      <div class="mt-auto flex items-end justify-between">
+        <div class="text-xs text-gray-500">
+          {% if listing.city or listing.region %}
+            {{ listing.city }}{% if listing.city and listing.region %}, {% endif %}{{ listing.region }}
+          {% endif %}
+        </div>
+
+        {% if listing.price_from %}
+          <div class="text-right">
+            <div class="text-xs text-gray-500">From</div>
+            <div class="text-2xl font-semibold text-gray-900">
+              {{ (listing.currency or 'USD') }} {{ '%.0f'|format(listing.price_from) }}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</article>
+{% endmacro %}

@@ -56,10 +56,10 @@ def init_db() -> None:
             'payments',
             'admin',
             'auth',
-            'audit',
-            'notifications',
-            'reports',
-            'analytics',
+            # 'audit',
+            # 'notifications',
+            # 'reports',
+            # 'analytics',
             'content',
         ]
         for schema in SCHEMAS:

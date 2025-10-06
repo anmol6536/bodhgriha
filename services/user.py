@@ -13,9 +13,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import current_user
+from flask import url_for
 
-from forms.user import LoginForm
-from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential
+from forms.user import LoginForm, AddressForm
+from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential, Address
 from utilities import LOGGER
 
 
@@ -357,3 +359,107 @@ def reset_password(db: Session, email: str, old_password: str, new_password: str
         raise ValueError("incorrect_password")
 
     forced_update_password(db, user, new_password)
+
+
+def save_address_from_form(
+        db: Session,
+        *,
+        form: AddressForm,
+        user_id: int | None = None,
+) -> Address:
+    """
+    Persist an address based on the submitted AddressForm.
+
+    Args:
+        db: Active database session.
+        form: Validated AddressForm instance.
+        user_id: Optional override for the address owner. Falls back to form/user.
+
+    Returns:
+        The newly created or updated Address instance.
+
+    Raises:
+        ValueError: if the address cannot be resolved for the current user.
+    """
+    target_user_id = user_id
+    if target_user_id is None:
+        raw_user_id = form.user_id.data
+        if raw_user_id:
+            try:
+                target_user_id = int(raw_user_id)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("invalid_user_id") from exc
+        elif current_user.is_authenticated:
+            target_user_id = current_user.id
+        else:
+            raise ValueError("user_required")
+
+    address: Address | None = None
+    if form.id.data:
+        try:
+            address_id = int(form.id.data)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid_address_id") from exc
+        address = db.get(Address, address_id)
+        if not address or address.user_id != target_user_id:
+            raise ValueError("address_not_found")
+
+    if address is None:
+        address = Address(user_id=target_user_id)
+        db.add(address)
+
+    address.user_id = target_user_id
+    address.line1 = (form.line1.data or "").strip()
+    address.line2 = (form.line2.data or "").strip() or None
+    address.city = (form.city.data or "").strip()
+    address.state = (form.state.data or "").strip() or None
+    address.postal_code = (form.postal_code.data or "").strip()
+    address.country_iso2 = (form.country_iso2.data or "").upper()
+
+    mark_primary = bool(form.is_primary.data)
+    if mark_primary:
+        query = db.query(Address).filter(Address.user_id == target_user_id, Address.is_primary.is_(True))
+        if address.id:
+            query = query.filter(Address.id != address.id)
+        query.update({"is_primary": False}, synchronize_session=False)
+
+    address.is_primary = mark_primary
+
+    db.flush()
+
+    return address
+
+
+def dashboard_links() -> List[Dict[str, str]]:
+    """
+     {% for item in sidebar %}
+        <div class="p-4 mb-4 bg-white rounded-lg shadow">
+            <h2 class="text-lg font-semibold mb-2">{{ item.title }}</h2>
+            <ul class="list-disc list-inside space-y-1">
+                {% for link in item.links %}
+                    <li><a href="{{ link.url }}" class="text-emerald-600 hover:underline">{{ link.label }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+    """
+    sidebar = [
+        {
+            "title": "Account",
+            "links": [
+                {"label": "Profile", "url": url_for('user.profile')},
+                {"label": "Security", "url": "#"},
+                {"label": "Bookings", "url": "#"},
+            ]
+        }
+    ]
+
+    return sidebar
+
+
+# Ensure user profile modal routes register when the services layer is imported.
+try:
+    import importlib
+    importlib.import_module("views.user.profile")
+except ModuleNotFoundError:
+    pass

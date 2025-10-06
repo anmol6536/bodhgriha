@@ -98,6 +98,203 @@
     </section>
 
 
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+{% from "ui/macros/listing.html" import listing_card %}
+
+<div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 backdrop-blur bg-white/70 shadow-lg -mt-20 relative">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    {# ========== LEFT: FILTERS (sticky on desktop) ========== #}
+    <aside class="lg:col-span-3 bg-white/70 p-6 rounded-md lg:sticky lg:top-6">
+      <form method="get" class="space-y-6 lg:sticky lg:top-6">
+        {# search box #}
+        <div>
+          <label for="q" class="block text-sm font-medium text-gray-700">Search</label>
+          <div class="mt-1 flex gap-2">
+            <input id="q" name="q" type="text" value="{{ request.args.get('q','') }}"
+                   class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2"
+                   placeholder="Retreat, city, school…">
+            <button class="rounded-lg bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700"
+                    type="submit">Go</button>
+          </div>
+        </div>
+
+        {# location #}
+        <div class="border rounded-xl p-4">
+          <div class="text-sm font-semibold mb-3">Location</div>
+          <select name="country" class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600">
+            <option value="">Any country</option>
+            <option value="spain" {{ 'selected' if request.args.get('country')=='spain' }}>Spain</option>
+            <option value="india" {{ 'selected' if request.args.get('country')=='india' }}>India</option>
+            <option value="thailand" {{ 'selected' if request.args.get('country')=='thailand' }}>Thailand</option>
+            <option value="bali" {{ 'selected' if request.args.get('country')=='bali' }}>Bali (Indonesia)</option>
+          </select>
+          <input name="region" type="text" value="{{ request.args.get('region','') }}"
+                 class="mt-2 w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2"
+                 placeholder="Region / city (optional)">
+        </div>
+
+        {# date #}
+        <div class="border rounded-xl p-4">
+          <div class="text-sm font-semibold mb-3">Start Date</div>
+          <input name="start_date" type="date" value="{{ request.args.get('start_date','') }}"
+                 class="w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2">
+        </div>
+
+        {# duration #}
+        <div class="border rounded-xl p-4">
+          <div class="text-sm font-semibold mb-3">Duration</div>
+          <div class="flex items-center gap-3">
+            <input name="min_days" type="number" min="1" placeholder="Min"
+                   value="{{ request.args.get('min_days','') }}"
+                   class="w-24 rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2">
+            <span class="text-gray-400">–</span>
+            <input name="max_days" type="number" min="1" placeholder="Max"
+                   value="{{ request.args.get('max_days','') }}"
+                   class="w-24 rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2">
+            <span class="text-sm text-gray-500">days</span>
+          </div>
+        </div>
+
+        {# budget #}
+        <div class="border rounded-xl p-4">
+          <div class="text-sm font-semibold mb-3">Budget (From price)</div>
+          <div class="flex items-center gap-3">
+            <input name="min_price" type="number" min="0" step="1" placeholder="Min"
+                   value="{{ request.args.get('min_price','') }}"
+                   class="w-28 rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2">
+            <span class="text-gray-400">–</span>
+            <input name="max_price" type="number" min="0" step="1" placeholder="Max"
+                   value="{{ request.args.get('max_price','') }}"
+                   class="w-28 rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2">
+          </div>
+          <select name="currency" class="mt-2 w-full rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2">
+            <option value="">Any currency</option>
+            <option value="USD" {{ 'selected' if request.args.get('currency')=='USD' }}>USD</option>
+            <option value="EUR" {{ 'selected' if request.args.get('currency')=='EUR' }}>EUR</option>
+            <option value="INR" {{ 'selected' if request.args.get('currency')=='INR' }}>INR</option>
+          </select>
+        </div>
+
+        {# rating #}
+        <div class="border rounded-xl p-4">
+          <div class="text-sm font-semibold mb-3">Minimum Rating</div>
+          <div class="flex gap-2">
+            {% for r in [4.5,4.0,3.5] %}
+              <label class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm cursor-pointer
+                            {{ 'bg-emerald-50 border-emerald-600 text-emerald-700' if request.args.get('min_rating')==r|string else 'border-gray-300 text-gray-700' }}">
+                <input type="radio" name="min_rating" value="{{ r }}" class="sr-only"
+                       {{ 'checked' if request.args.get('min_rating')==r|string }}>
+                {{ r }}+
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# perks #}
+        <div class="border rounded-xl p-4">
+          <div class="text-sm font-semibold mb-3">Perks</div>
+          {% set perk_options = [
+            ('meals','All meals included'),
+            ('airport','Airport transfer'),
+            ('veg','Vegetarian friendly'),
+            ('english','Instructed in English'),
+            ('private','Private room available')
+          ] %}
+          <div class="space-y-2">
+            {% for key,label in perk_options %}
+              {% set checked = 'checked' if request.args.getlist('perk') and key in request.args.getlist('perk') else '' %}
+              <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="perk" value="{{ key }}" {{ checked }}
+                       class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
+                {{ label }}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# actions #}
+        <div class="flex items-center gap-3">
+          <button type="submit" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700">
+            Apply filters
+          </button>
+          <a href="{{ request.path }}" class="rounded-lg px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50">
+            Reset
+          </a>
+        </div>
+      </form>
+    </aside>
+
+    {# ========== RIGHT: RESULTS ========== #}
+    <main class="lg:col-span-9">
+      <div class="flex items-center justify-between mb-6">
+        {% if request.args.get('q') %}
+          <h1 class="text-2xl font-bold">Search results for “{{ request.args.get('q') }}”</h1>
+        {% else %}
+          <h1 class="text-2xl font-bold">Explore Our Latest Yoga Experiences</h1>
+        {% endif %}
+
+        {# optional sort selector #}
+        <form method="get" class="hidden sm:block">
+          {# preserve current filters #}
+          {% for k, v in request.args.items() if k != 'sort' %}
+            <input type="hidden" name="{{ k }}" value="{{ v }}">
+          {% endfor %}
+          <label class="sr-only" for="sort">Sort</label>
+          <select id="sort" name="sort"
+                  class="rounded-lg border-gray-300 focus:border-emerald-600 focus:ring-emerald-600 px-3 py-2"
+                  onchange="this.form.submit()">
+            <option value="">Sort</option>
+            <option value="price_asc"  {{ 'selected' if request.args.get('sort')=='price_asc'  }}>Price: Low → High</option>
+            <option value="price_desc" {{ 'selected' if request.args.get('sort')=='price_desc' }}>Price: High → Low</option>
+            <option value="rating_desc"{{ 'selected' if request.args.get('sort')=='rating_desc' }}>Rating</option>
+            <option value="days_desc"  {{ 'selected' if request.args.get('sort')=='days_desc'  }}>Duration</option>
+          </select>
+        </form>
+      </div>
+
+      {% if listings %}
+        <div class="space-y-4">
+          {% for listing in listings %}
+            {{ listing_card(listing) }}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-gray-600">No results found{% if request.args.get('q') %} for “{{ request.args.get('q') }}”{% endif %}. Try different filters.</p>
+      {% endif %}
+    </main>
+
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
     <section class="relative py-24 bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-sm">
         <div class="max-w-5xl mx-auto px-6">
             <!-- Decorative background elements -->
@@ -210,5 +407,6 @@
             </section>
           </div>
     </section>
+
 
 {% endblock %}

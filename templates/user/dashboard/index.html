@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome {{ current_user.first_name or current_user.name or current_user.email if current_user.is_authenticated else 'Guest' }} - Bodhgriha{% endblock %}
+
+{% block description %}Explore and book authentic yoga experiences around the world. Find your perfect retreat today.{% endblock %}
+
+{% block content %}
+{% if current_user.is_authenticated %}
+    {% set user_name = current_user.first_name or current_user.name or (current_user.email|default('Guest')|split('@')|first) %}
+{% else %}
+    {% set user_name = 'Guest' %}
+{% endif %}
+
+{% set stats = [
+    {"label": "Upcoming Retreats", "value": "2", "hint": "Next journey starts in 5 days"},
+    {"label": "Saved Programs", "value": "5", "hint": "Curated just for you"},
+    {"label": "Completed Hours", "value": "48h", "hint": "Logged across all sessions"},
+    {"label": "Mindfulness Streak", "value": "7 days", "hint": "Keep the rhythm going"}
+] %}
+
+{% set timeline = [
+    {"title": "Sound Bath Meditation", "timestamp": "Yesterday · 6:30 PM", "note": "Added to your favourites and synced with calendar."},
+    {"title": "Retreat Follow-up Survey", "timestamp": "2 days ago", "note": "Community feedback form submitted – thank you!"},
+    {"title": "Payment Confirmation", "timestamp": "3 days ago", "note": "Deposit received for the Alicante retreat."}
+] %}
+
+<section class="relative isolate py-16">
+    <div class="absolute inset-0 -z-20 bg-cover bg-center" style="background-image: url('{{ url_for('static', filename='images/dashboard.jpeg') }}');"></div>
+    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-950/50 via-slate-900/40 to-emerald-900/50"></div>
+
+    <div class="relative mx-auto flex max-w-7xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
+        <header class="rounded-3xl border border-white/10 bg-white/10 p-8 text-white shadow-2xl shadow-emerald-950/40 backdrop-blur-2xl">
+            <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-sm uppercase tracking-[0.3em] text-white/70">Dashboard</p>
+                    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">Welcome back, {{ user_name }}.</h1>
+                    <p class="mt-3 max-w-xl text-base text-white/70">
+                        Track your upcoming retreats, stay aligned with your practice, and explore new experiences curated for you.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <a href="#" class="rounded-full border border-white/20 bg-white/15 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/25 focus:outline-none focus-visible:ring focus-visible:ring-white/60">
+                        Continue Journey
+                    </a>
+                    <a href="#" class="rounded-full bg-emerald-400 px-5 py-2 text-sm font-medium text-emerald-950 transition hover:bg-emerald-300 focus:outline-none focus-visible:ring focus-visible:ring-emerald-200">
+                        New Booking
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {% for stat in stats %}
+                    <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl transition hover:bg-white/15">
+                        <p class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">{{ stat.label }}</p>
+                        <p class="mt-2 text-2xl font-semibold text-white">{{ stat.value }}</p>
+                        <p class="mt-1 text-sm text-white/60">{{ stat.hint }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-[280px,1fr]">
+            <aside class="space-y-4">
+                {% for item in sidebar %}
+                    <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-lg font-semibold text-white">{{ item.title }}</h2>
+                            <span class="text-xs uppercase tracking-[0.2em] text-white/60">Shortcuts</span>
+                        </div>
+                        <ul class="mt-4 space-y-3">
+                            {% for link in item.links %}
+                                <li>
+                                    <a href="{{ link.url }}" class="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white">
+                                        {{ link.label }}
+                                        <span class="text-emerald-200 opacity-0 transition group-hover:opacity-100">&rarr;</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                {% endfor %}
+
+                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                    <h3 class="text-base font-semibold">Need a hand?</h3>
+                    <p class="mt-2 text-sm text-white/70">
+                        Book a one-on-one planning session with a retreat specialist and craft your next journey.
+                    </p>
+                    <a href="#" class="mt-4 inline-flex items-center justify-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-white">
+                        Schedule a call
+                    </a>
+                </section>
+            </aside>
+
+            <div class="space-y-6">
+                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-white">Upcoming experiences</h2>
+                            <p class="text-sm text-white/70">Preview what is next on your calendar.</p>
+                        </div>
+                        <a href="#" class="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm text-white transition hover:bg-white/10">
+                            View all
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </div>
+                    <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <article class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-2xl">
+                            <p class="text-xs uppercase tracking-[0.2em] text-white/60">Next week</p>
+                            <h3 class="mt-2 text-lg font-semibold text-white">Alicante Sunrise Retreat</h3>
+                            <p class="mt-2 text-sm text-white/70">Morning meditations, guided hikes, and nourishing meals overlooking the Costa Blanca.</p>
+                            <div class="mt-4 flex items-center justify-between text-sm text-white/60">
+                                <span>Oct 12 – Oct 16</span>
+                                <a href="#" class="text-white hover:text-emerald-200">Details</a>
+                            </div>
+                        </article>
+                        <article class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-2xl">
+                            <p class="text-xs uppercase tracking-[0.2em] text-white/60">This month</p>
+                            <h3 class="mt-2 text-lg font-semibold text-white">Balinese Renewal Journey</h3>
+                            <p class="mt-2 text-sm text-white/70">Seven days of restorative practice, cultural immersions, and sunset ceremonies in Ubud.</p>
+                            <div class="mt-4 flex items-center justify-between text-sm text-white/60">
+                                <span>Oct 24 – Oct 31</span>
+                                <a href="#" class="text-white hover:text-emerald-200">Details</a>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                    <h2 class="text-xl font-semibold text-white">Activity timeline</h2>
+                    <p class="mt-1 text-sm text-white/70">A snapshot of the latest updates across your account.</p>
+                    <ol class="mt-6 space-y-5">
+                        {% for item in timeline %}
+                            <li class="relative pl-6">
+                                <span class="absolute left-0 top-1 h-2 w-2 rounded-full bg-emerald-300"></span>
+                                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                        <h3 class="text-sm font-semibold text-white">{{ item.title }}</h3>
+                                        <span class="text-xs uppercase tracking-[0.2em] text-white/60">{{ item.timestamp }}</span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-white/70">{{ item.note }}</p>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </section>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
