@@ -1,0 +1,51 @@
+{% set active_chat = (previous_chats | selectattr('id', 'equalto', receiver_id) | list | first) %}
+{% set partner_name = active_chat.first_name or active_chat.email if active_chat else 'Direct Messages' %}
+{% set partner_hint = "Select a conversation from the left to get started." if not active_chat else "Send updates, share resources, or just check in with your circle." %}
+
+<section id="chat-panel" class="flex flex-col h-[70vh] min-h-0">
+    <header class="flex items-center justify-between gap-4 border-b border-white/40 bg-white/40 px-6 py-5 backdrop-blur-xl">
+        <div>
+            <p class="text-xs uppercase font-semibold tracking-[0.28em] text-emerald-400 drop-shadow-sm">
+                {% if active_chat %}Chatting with{% else %}Direct Messages{% endif %}
+            </p>
+            <h1 class="text-2xl font-semibold text-slate-900 drop-shadow mt-1">
+                {{ partner_name }}
+            </h1>
+            <p class="text-sm text-slate-600/90 mt-1">{{ partner_hint }}</p>
+        </div>
+        <span class="hidden sm:inline-flex items-center gap-2 text-slate-600 bg-white/70 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow shadow-emerald-400/60"></span>
+            Live
+        </span>
+    </header>
+
+    <div class="flex-1 flex flex-col px-6 pb-6 min-h-0">
+        <div class="relative flex-1 min-h-0">
+            <div class="absolute inset-0"></div>
+            <ul
+                id="chat"
+                data-current-user="{{ current_user.email }}"
+                data-initial='{{ chat_history|tojson }}'
+                class="relative z-10 flex flex-col gap-3 h-full overflow-y-auto px-4 py-6 text-sm text-slate-800">
+            </ul>
+        </div>
+
+        <div class="mt-5">
+            <div class="flex items-end gap-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl px-4 py-3 shadow-lg shadow-emerald-200/40">
+                <textarea id="msg"
+                          rows="1"
+                          placeholder="Type your message..."
+                          class="flex-1 resize-none border-none bg-transparent focus:outline-none focus:ring-0 text-sm text-slate-800 placeholder:text-slate-500"
+                          data-receiver-id="{{ receiver_id }}"></textarea>
+                <button id="send-btn"
+                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-300/40 transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1 focus:ring-offset-white/60 disabled:opacity-70 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12 3 3l18 9-18 9 1.5-9zm0 0 12-6-5.25 6L16.5 21l-12-9z" />
+                    </svg>
+                    Send
+                </button>
+            </div>
+            <p class="mt-2 text-xs text-slate-500/80 text-center drop-shadow">Enter to send · Shift + Enter for a new line</p>
+        </div>
+    </div>
+</section>

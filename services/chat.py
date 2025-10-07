@@ -4,6 +4,8 @@ from models.sql.chat import Message
 from core.db import uow
 from flask_socketio import SocketIO
 
+socketio = SocketIO(cors_allowed_origins="*")  # configure CORS as needed
+
 
 def _write_to_db(message: Message) -> Message:
     """Persist a chat message using the unit-of-work helper."""
@@ -12,11 +14,10 @@ def _write_to_db(message: Message) -> Message:
         session.flush()   # populate PK/server defaults before the UoW commits
         session.refresh(message)
         return message  # the outer context gets the managed instance
-    
 
 def register_chat(app):
 
-    socketio = SocketIO(app, cors_allowed_origins="*")
+    socketio.init_app(app)
     
     @socketio.on('connect')
     def handle_connect():
@@ -56,4 +57,4 @@ def register_chat(app):
     @socketio.on('disconnect')
     def handle_disconnect():
         if current_user.is_authenticated:
-            emit('status', {'msg': f'{current_user.username} disconnected.'}, room=current_user.id)
+            emit('status', {'msg': f'{current_user.first_name} disconnected.'}, room=current_user.id)

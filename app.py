@@ -235,15 +235,10 @@ def create_app():
         # For now, redirect to home page
         return redirect(url_for('index'))
     
-    @app.route('/chat')
-    @login_required
-    def chat():
-        return render_template(
-            "user/chat.html",
-            **_invert_navbar_colors(_context())
-        )
-
     return app
 
+if __name__ == "__main__":
+    from services.chat import socketio
 
-app = create_app()
+    app = create_app()
+    socketio.run(app, host='0.0.0.0', port=5001, debug=False, ssl_context='adhoc')

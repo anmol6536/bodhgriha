@@ -37,3 +37,7 @@ def register_views(app: Flask) -> None:
     # User Dashboard
     from .user.dashboard import bp as dashboard_bp
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
+
+    # Chat
+    from .content.chat import bp as chat_bp
+    app.register_blueprint(chat_bp, url_prefix="/chat")
