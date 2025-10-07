@@ -14,6 +14,8 @@ from .base import (User,
 
 from .testimonials import Testimonial, TestimonialMeta
 
+from .chat import Message
+
 __all__ = [
     "User",
     "BlogPost",
@@ -28,5 +30,6 @@ __all__ = [
     "ensure_postgres_extensions",
     "search_posts",
     "Testimonial",
-    "TestimonialMeta"
+    "TestimonialMeta",
+    "Message",
 ]

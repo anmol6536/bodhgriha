@@ -11,8 +11,9 @@ def role_validation(required_roles: str):
             if not current_user.is_authenticated:
                 # This should be handled by @login_required, but as a safeguard
                 return abort(401)
-
-            if not current_user.has_role(RoleBits[required_roles]):
+            
+            # if role is higher than required, allow access
+            if not current_user.has_previlige(RoleBits[required_roles]):
                 return abort(403)
 
             return f(*args, **kwargs)

@@ -96,6 +96,13 @@ class User(UserMixin, TimestampMixin, Base):
     def remove_role(self, role: RoleBits) -> None:
         self.role_bits = int(RoleBits(self.role_bits) & ~role)
 
+    def has_previlige(self, required_role: RoleBits | int) -> bool:
+        """
+        escalation policy is ordered. E.g., ADMIN > STAFF > EDITOR > INSTRUCTOR > MEMBER
+        If allowed for INSTRUCTOR, also allowed for EDITOR, STAFF, ADMIN
+        """
+        return self.role_bits >= (required_role.value if isinstance(required_role, RoleBits) else required_role)
+
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r} roles={RoleBits(self.role_bits)}>"
 

@@ -58,8 +58,8 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <a href="#" class="rounded-full border border-white/20 bg-white/15 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/25 focus:outline-none focus-visible:ring focus-visible:ring-white/60">
-                        Manage account
+                    <a href="{{ url_for('user.dashboard') }}" class="rounded-full border border-white/20 bg-white/15 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/25 focus:outline-none focus-visible:ring focus-visible:ring-white/60">
+                        Dashboard
                     </a>
                     <a href="{{ url_for('auth.logout') }}" class="rounded-full bg-emerald-400 px-5 py-2 text-sm font-medium text-emerald-950 transition hover:bg-emerald-300 focus:outline-none focus-visible:ring focus-visible:ring-emerald-200">
                         Sign out
@@ -246,57 +246,64 @@
                     {% endif %}
                 </section>
 
-                <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h2 class="text-xl font-semibold text-white">Schools and courses</h2>
-                            <p class="text-sm text-white/70">Ownership is derived from admin.schools.owner_id. Teaching assignments use courses.course_instructors.</p>
+                {% if current_user.has_previlige(2) %}  {# RoleBits.INSTRUCTOR = 2 #}
+                    <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 class="text-xl font-semibold text-white">Schools and courses</h2>
+                                <p class="text-sm text-white/70">Ownership is derived from admin.schools.owner_id. Teaching assignments use courses.course_instructors.</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <div class="space-y-3">
-                            <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">Owned schools ({{ school_count }})</h3>
-                            {% if school_count %}
-                                <ul class="space-y-3">
-                                    {% for school in owned_schools %}
-                                        <li class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                            <p class="text-sm font-semibold text-white">{{ school.name }}</p>
-                                            <p class="text-sm text-white/70">{{ school.email }}</p>
-                                            <p class="mt-2 text-xs uppercase tracking-[0.2em] text-white/60">
-                                                {% if school.is_verified %}Verified{% else %}Pending verification{% endif %} -
-                                                {% if school.is_active %}Active{% else %}Inactive{% endif %}
-                                            </p>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                <p class="text-sm text-white/70">No schools associated with this user.</p>
-                            {% endif %}
+                        <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            <div class="space-y-3">
+                                <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">Owned schools ({{ school_count }})</h3>
+                                {% if school_count %}
+                                    <ul class="space-y-3">
+                                        {% for school in owned_schools %}
+                                            <li class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                                <p class="text-sm font-semibold text-white">{{ school.name }}</p>
+                                                <p class="text-sm text-white/70">{{ school.email }}</p>
+                                                <p class="mt-2 text-xs uppercase tracking-[0.2em] text-white/60">
+                                                    {% if school.is_verified %}Verified{% else %}Pending verification{% endif %} -
+                                                    {% if school.is_active %}Active{% else %}Inactive{% endif %}
+                                                </p>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-sm text-white/70">No schools associated with this user.</p>
+                                {% endif %}
+                            </div>
+                            <div class="space-y-3">
+                                <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">Courses teaching ({{ teaching_courses|length }})</h3>
+                                {% if teaching_courses %}
+                                    <ul class="space-y-3">
+                                        {% for course in teaching_courses %}
+                                            <li class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                                <p class="text-sm font-semibold text-white">{{ course.title }}</p>
+                                                <p class="text-sm text-white/70">{{ course.school.name if course.school is defined and course.school else 'School not linked' }}</p>
+                                                <p class="mt-2 text-xs uppercase tracking-[0.2em] text-white/60">
+                                                    {% if course.start_date %}
+                                                        Starts {{ course.start_date.strftime('%b %d, %Y') }}
+                                                    {% else %}
+                                                        Schedule to be announced
+                                                    {% endif %}
+                                                </p>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-sm text-white/70">No teaching assignments for this account.</p>
+                                {% endif %}
+                            </div>
                         </div>
-                        <div class="space-y-3">
-                            <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">Courses teaching ({{ teaching_courses|length }})</h3>
-                            {% if teaching_courses %}
-                                <ul class="space-y-3">
-                                    {% for course in teaching_courses %}
-                                        <li class="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                            <p class="text-sm font-semibold text-white">{{ course.title }}</p>
-                                            <p class="text-sm text-white/70">{{ course.school.name if course.school is defined and course.school else 'School not linked' }}</p>
-                                            <p class="mt-2 text-xs uppercase tracking-[0.2em] text-white/60">
-                                                {% if course.start_date %}
-                                                    Starts {{ course.start_date.strftime('%b %d, %Y') }}
-                                                {% else %}
-                                                    Schedule to be announced
-                                                {% endif %}
-                                            </p>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                <p class="text-sm text-white/70">No teaching assignments for this account.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </section>
+                    </section>
+                {% else %}
+                    <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
+                        <h2 class="text-xl font-semibold text-white">Schools and courses</h2>
+                        <p class="mt-4 text-sm text-white/70">Enroll into a course as a student or get in touch to become an instructor and manage your own school on Bodhgriha.</p>
+                    </section>
+                {% endif %}
             </div>
         </div>
     </div>

@@ -431,18 +431,6 @@ def save_address_from_form(
 
 
 def dashboard_links() -> List[Dict[str, str]]:
-    """
-     {% for item in sidebar %}
-        <div class="p-4 mb-4 bg-white rounded-lg shadow">
-            <h2 class="text-lg font-semibold mb-2">{{ item.title }}</h2>
-            <ul class="list-disc list-inside space-y-1">
-                {% for link in item.links %}
-                    <li><a href="{{ link.url }}" class="text-emerald-600 hover:underline">{{ link.label }}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
-    {% endfor %}
-    """
     sidebar = [
         {
             "title": "Account",
@@ -450,9 +438,21 @@ def dashboard_links() -> List[Dict[str, str]]:
                 {"label": "Profile", "url": url_for('user.profile')},
                 {"label": "Security", "url": "#"},
                 {"label": "Bookings", "url": "#"},
+                {"label": "Payments", "url": "#"}
             ]
         }
     ]
+
+    if current_user.has_previlige(RoleBits.INSTRUCTOR):
+        sidebar.append(
+            {
+                "title": "Instructor",
+                "links": [
+                    {"label": "Register New School", "url": url_for('schools.register')}
+                ]
+            }
+        )
+
 
     return sidebar
 

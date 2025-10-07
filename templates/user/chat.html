@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - Bodhgriha{% endblock %}
+
+{% block content %}
+<div class="relative isolate">
+    <div class="absolute inset-0 -z-10 bg-emerald-100/40"></div>
+    <div class="absolute inset-x-0 top-0 -z-10 h-60 bg-gradient-to-br from-emerald-200 via-white to-blue-100 blur-3xl opacity-60"></div>
+
+    <div class="container mx-auto px-4 py-12">
+        <div class="w-full max-w-5xl mx-auto bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl ring-1 ring-black/5 overflow-hidden">
+            <div class="grid md:grid-cols-[260px_1fr]">
+                <aside class="hidden md:flex flex-col gap-6 bg-slate-900 text-white/90 p-8">
+                    <div>
+                        <h2 class="text-lg font-semibold text-white tracking-wide">Your Chats</h2>
+                        <p class="text-sm text-white/70 mt-1">Pick a conversation and keep the flow going.</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <article class="rounded-2xl bg-white/10 p-4 border border-white/10">
+                            <h3 class="text-sm font-semibold text-white">Mentor Lounge</h3>
+                            <p class="text-xs text-white/70 mt-1">Connect with instructors and coordinators.</p>
+                        </article>
+                        <article class="rounded-2xl bg-white/5 p-4 border border-white/10">
+                            <h3 class="text-sm font-semibold text-white">Peer Circle</h3>
+                            <p class="text-xs text-white/70 mt-1">Chat with classmates from your cohort.</p>
+                        </article>
+                    </div>
+
+                    <div class="mt-auto text-xs text-white/60">
+                        Conversations are moderated to keep our community grounded and welcoming. ✨
+                    </div>
+                </aside>
+
+                <section class="flex flex-col h-[70vh]">
+                    <header class="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-5">
+                        <div>
+                            <p class="text-xs uppercase font-semibold tracking-[0.28em] text-emerald-500">Direct Messages</p>
+                            <h1 class="text-2xl font-semibold text-slate-900 mt-1">{{ current_user.first_name or current_user.email }}, say hello!</h1>
+                            <p class="text-sm text-slate-500 mt-1">Send updates, share resources, or just check in with your circle.</p>
+                        </div>
+                        <span class="hidden sm:inline-flex items-center gap-2 text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-full text-xs font-medium">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Live
+                        </span>
+                    </header>
+
+                    <div class="flex-1 flex flex-col px-6 pb-6">
+                        <div class="relative flex-1">
+                            <div class="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50 rounded-2xl"></div>
+                            <ul id="chat"
+                                data-current-user="{{ current_user.email }}"
+                                class="relative z-10 flex flex-col gap-3 h-full overflow-y-auto px-4 py-6 text-sm">
+                            </ul>
+                        </div>
+
+                        <div class="mt-5">
+                            <div class="flex items-end gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
+                                <textarea id="msg"
+                                          rows="1"
+                                          placeholder="Type your message..."
+                                          class="flex-1 resize-none border-none focus:outline-none focus:ring-0 text-sm text-slate-800 placeholder:text-slate-400"
+                                          data-receiver-id="2"></textarea>
+                                <button id="send-btn"
+                                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-white disabled:opacity-70 disabled:cursor-not-allowed">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.5 12 3 3l18 9-18 9 1.5-9zm0 0 12-6-5.25 6L16.5 21l-12-9z" />
+                                    </svg>
+                                    Send
+                                </button>
+                            </div>
+                            <p class="mt-2 text-xs text-slate-400 text-center">Enter to send · Shift + Enter for a new line</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" nonce="{{ csp_nonce() }}" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='js/socket.js') }}" nonce="{{ csp_nonce() }}"></script>
+{% endblock %}

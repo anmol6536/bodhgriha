@@ -8,12 +8,14 @@ from core.db import uow
 from forms.school import SchoolRegisterForm
 from models.yoga import YogaSchool as School
 from services.base import _context
+from utilities.decorators import role_validation
 
 bp = Blueprint("schools", __name__, url_prefix="/schools")
 
 
 @bp.route("/register", methods=["GET", "POST"])
 @login_required
+@role_validation("INSTRUCTOR")  # only users with INSTRUCTOR role can register schools
 def register():
     form = SchoolRegisterForm()
 

@@ -12,6 +12,9 @@ from flask_login import LoginManager
 from sqlalchemy import select
 from utilities.logger import configure_logging
 from services.base import _context, _invert_navbar_colors
+from flask_login import login_required
+from services.chat import register_chat
+
 
 
 def create_app():
@@ -25,6 +28,7 @@ def create_app():
     app.config.logger.info("Seeding enumeration tables...")
     with uow() as db:
         seed_enums(db)
+    
     app.config.logger.info("Enumeration tables seeded.")
 
     app.config.update(
@@ -56,9 +60,9 @@ def create_app():
             # nonced inline scripts allowed via Talisman (nonce injected)
             "https://cdn.tailwindcss.com",
             "https://unpkg.com",
+            "https://cdn.socket.io",
             "unsafe-inline",  # needed for HTMX
             # "'unsafe-eval'",  # only if you set tailwind.config in-page at runtime
-            "unsafe-inline"
         ],
 
         # --- Styles ---
@@ -98,6 +102,8 @@ def create_app():
             "'self'",
             "https://maps.googleapis.com",
             "https://maps.gstatic.com",
+            "wss:",
+            "ws:",
         ],
 
         # --- Frames (for <iframe> embeds like Google Maps) ---
@@ -133,6 +139,8 @@ def create_app():
         },
         session_cookie_secure=True,
     )
+
+    register_chat(app)  # initialize Flask-SocketIO for chat support
 
     # --- Login manager
     login_manager = LoginManager()
@@ -226,6 +234,14 @@ def create_app():
         # This route can be used for testimonials management if needed
         # For now, redirect to home page
         return redirect(url_for('index'))
+    
+    @app.route('/chat')
+    @login_required
+    def chat():
+        return render_template(
+            "user/chat.html",
+            **_invert_navbar_colors(_context())
+        )
 
     return app
 
