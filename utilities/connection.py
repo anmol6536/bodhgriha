@@ -3,11 +3,12 @@ from sqlalchemy import Engine, text, create_engine
 from sqlalchemy.exc import ResourceClosedError
 import pandas as pd
 from pandas import DataFrame
+import os
 
 
 class EngineManager:
     _instances: dict[str, Engine] = dict(
-        BODHGRIHA=create_engine("postgresql+psycopg2://admin:changeme@localhost:5434/postgres")
+        BODHGRIHA=create_engine(os.environ.get("DATABASE_URL"))
     )
 
     def __init__(self): ...

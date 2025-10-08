@@ -4,19 +4,10 @@
 
 {% block description %}Review the core details attached to your Bodhgriha account.{% endblock %}
 
+
 {% block content %}
 {% set is_authenticated = current_user.is_authenticated %}
 {% set user_name = current_user.first_name or current_user.name or (current_user.email|default('Guest')|split('@')|first) if is_authenticated else 'Guest' %}
-{% set member_since = current_user.created_at.strftime('%b %d, %Y') if is_authenticated and current_user.created_at else 'Not available' %}
-{% set last_updated = current_user.updated_at.strftime('%b %d, %Y') if is_authenticated and current_user.updated_at else 'Not available' %}
-{% if addresses is not defined %}
-    {% if is_authenticated %}
-        {% set addresses = current_user.addresses or [] %}
-    {% else %}
-        {% set addresses = [] %}
-    {% endif %}
-{% endif %}
-{% set testimonials = testimonials if testimonials is defined else [] %}
 {% set owned_schools = owned_schools if owned_schools is defined else [] %}
 {% set teaching_courses = teaching_courses if teaching_courses is defined else [] %}
 
@@ -57,46 +48,17 @@
                         This page reflects the information currently stored for your Bodhgriha account. Expand the backend context to expose additional data over time.
                     </p>
                 </div>
-                <div class="flex flex-wrap gap-3">
-                    <a href="{{ url_for('user.dashboard') }}" class="rounded-full border border-white/20 bg-white/15 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/25 focus:outline-none focus-visible:ring focus-visible:ring-white/60">
+                <div class="flex flex-wrap items-center gap-3">
+                    <a href="{{ url_for('user.dashboard') }}"
+                       class="inline-flex h-10 items-center gap-2 rounded-full border border-white/20 bg-white/15 px-5 text-sm font-medium text-white transition hover:bg-white/25 focus:outline-none focus-visible:ring focus-visible:ring-white/60">
                         Dashboard
                     </a>
-                    <a href="{{ url_for('auth.logout') }}" class="rounded-full bg-emerald-400 px-5 py-2 text-sm font-medium text-emerald-950 transition hover:bg-emerald-300 focus:outline-none focus-visible:ring focus-visible:ring-emerald-200">
+                    <a href="{{ url_for('auth.logout') }}"
+                       class="inline-flex h-10 items-center rounded-full bg-emerald-400 px-5 text-sm font-medium text-emerald-950 transition hover:bg-emerald-300 focus:outline-none focus-visible:ring focus-visible:ring-emerald-200">
                         Sign out
                     </a>
                 </div>
             </div>
-
-            <dl class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl">
-                    <dt class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Member since</dt>
-                    <dd class="mt-2 text-2xl font-semibold text-white">{{ member_since }}</dd>
-                    <p class="mt-1 text-sm text-white/60">Account creation timestamp</p>
-                </div>
-                <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl">
-                    <dt class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Status</dt>
-                    <dd class="mt-2 text-2xl font-semibold text-white">
-                        {% if is_authenticated and current_user.is_active %}
-                            Active
-                        {% elif is_authenticated %}
-                            Inactive
-                        {% else %}
-                            Guest
-                        {% endif %}
-                    </dd>
-                    <p class="mt-1 text-sm text-white/60">Reflects auth.users.is_active</p>
-                </div>
-                <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl">
-                    <dt class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Saved addresses</dt>
-                    <dd class="mt-2 text-2xl font-semibold text-white">{{ address_count }}</dd>
-                    <p class="mt-1 text-sm text-white/60">Records from auth.addresses</p>
-                </div>
-                <div class="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-2xl">
-                    <dt class="text-xs font-medium uppercase tracking-[0.2em] text-white/70">Testimonials</dt>
-                    <dd class="mt-2 text-2xl font-semibold text-white">{{ testimonial_count }}</dd>
-                    <p class="mt-1 text-sm text-white/60">Linked entries in content.testimonials</p>
-                </div>
-            </dl>
         </header>
 
         <div class="grid grid-cols-1 gap-8 lg:grid-cols-[320px,1fr]">

@@ -32,7 +32,7 @@ def create_app():
     app.config.logger.info("Enumeration tables seeded.")
 
     app.config.update(
-        SECRET_KEY=os.environ.get("SECRET_KEY", "dev-not-secure"),
+        SECRET_KEY=os.environ.get("SECRET_KEY"),
         SESSION_COOKIE_SECURE=True,  # send only over HTTPS
         SESSION_COOKIE_HTTPONLY=True,  # not accessible to JS
         SESSION_COOKIE_SAMESITE="Lax",  # CSRF mitigation for cross-site
@@ -69,9 +69,9 @@ def create_app():
         "style-src": [
             "'self'",
             "'unsafe-inline'",  # Tailwind CDN injects <style>
-            "https:",
             "data:",
-            "https://fonts.googleapis.com",  # drop if not using Google Fonts
+            "https://fonts.googleapis.com",
+            "https://fonts.gstatic.com",
         ],
 
         # --- Images (QR/data URIs ok) ---
@@ -93,7 +93,8 @@ def create_app():
         # --- Fonts ---
         "font-src": [
             "'self'",
-            "https://fonts.gstatic.com",  # drop if not using Google Fonts
+            "https://fonts.gstatic.com",
+            "https://fonts.googleapis.com",
             "data:",
         ],
 
@@ -241,4 +242,4 @@ if __name__ == "__main__":
     from services.chat import socketio
 
     app = create_app()
-    socketio.run(app, host='0.0.0.0', port=5001, debug=False, ssl_context='adhoc')
+    socketio.run(app, host='0.0.0.0', port=8080, debug=True)

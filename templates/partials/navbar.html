@@ -76,6 +76,12 @@
                                     <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                         Sign out
                                     </a>
+                                    <a href="{{ url_for('chat.chat', receiver_id=0) }}"
+                                        title="Open the chat interface"
+                                        aria-label="Open the chat interface"
+                                        class="inline-flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-3xl leading-none">chat</span>
+                                    </a>
                                 </div>
                             </details>
                         {% else %}

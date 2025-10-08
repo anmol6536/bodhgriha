@@ -1,0 +1,27 @@
+{
+  "devDependencies": {
+    "tailwindcss": "^4.1.14"
+  },
+  "name": "bodhgriha-minimal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anmol6536/bodhgriha.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/anmol6536/bodhgriha/issues"
+  },
+  "homepage": "https://github.com/anmol6536/bodhgriha#readme",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.14"
+  }
+}

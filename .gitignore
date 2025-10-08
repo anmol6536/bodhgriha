@@ -177,8 +177,15 @@ cython_debug/
 .AppleDouble
 .LSOverride
 
+# Node / frontend tooling
+node_modules/
+npm-debug.log*
+pnpm-lock.yaml
+pnpm-debug.log*
+yarn.lock
+yarn-error.log
+
 # certificates
 *.pem
 *.crt
 *.key
-
