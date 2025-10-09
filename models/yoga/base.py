@@ -4,12 +4,12 @@ from sqlalchemy.sql import func
 from models import Base
 
 
-# Association table for many-to-many relationship between courses and instructors (users with INSTRUCTOR role)
-course_instructors = Table(
-    'course_instructors',
+Instructors = Table(
+    "instructors",
     Base.metadata,
-    Column('course_id', Integer, ForeignKey('courses.courses.id'), primary_key=True),
-    Column('user_id', Integer, ForeignKey('auth.users.id'), primary_key=True)  # Changed from instructor_id to user_id
+    Column("user_id", Integer, ForeignKey("auth.users.id"), primary_key=True),
+    Column("course_id", Integer, ForeignKey("courses.courses.id"), primary_key=True),
+    schema="courses",
 )
 
 
@@ -54,6 +54,9 @@ class InstructorProfile(Base):
     This extends the base User model with yoga-specific instructor information.
     """
     __tablename__ = 'instructor_profiles'
+    __table_args__ = dict(
+        schema="courses"
+    )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('auth.users.id'), nullable=False, unique=True)
@@ -197,7 +200,7 @@ class Course(Base):
     certification_level_rel = relationship("CertificationLevel")
     currency_rel = relationship("Currency")
     status_rel = relationship("CourseStatus")
-    instructors = relationship("User", secondary=course_instructors, backref="courses_teaching")
+    instructors = relationship("User", secondary=Instructors, backref="courses_teaching")
 
     @property
     def available_spots(self):

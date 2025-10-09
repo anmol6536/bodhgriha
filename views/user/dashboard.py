@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from core.db import uow
 from models.sql import User as UserModel, Testimonial
-from models.yoga.base import Course, YogaSchool, course_instructors
+from models.yoga.base import Course, YogaSchool, Instructors
 from services.base import _context, _invert_navbar_colors
 from services.user import dashboard_links
 
@@ -46,8 +46,8 @@ def profile() -> Response:
         courses_stmt = (
             select(Course)
             .options(selectinload(Course.school))
-            .join(course_instructors, Course.id == course_instructors.c.course_id)
-            .where(course_instructors.c.user_id == user.id)
+            .join(Instructors, Course.id == Instructors.c.course_id)
+            .where(Instructors.c.user_id == user.id)
         )
         teaching_courses = db.execute(courses_stmt).scalars().all()
 

@@ -24,13 +24,21 @@ def _context():
         # search_url=url_for("search"),
         use_hyperscript=False,
         robots="index, follow",
-        tailwind_config={
-            "theme": {
-                "extend": {
-                    "colors": {"brand": {"DEFAULT": "#0ea5e9", "dark": "#0369a1"}}
-                }
-            }
-        },
+        tailwind_config=dict(
+            content = [
+                "./**/*.html",
+                "./**/*.js",
+                "./**/*.py",
+            ],
+            plugins = [
+                "forms",
+                "typography",
+                "aspect-ratio",
+                "line-clamp",
+                "container-queries",
+            ],
+        ),
+        
         brand_primary="#0c5741",
         **get_navbar_context(),
         **get_about_context()

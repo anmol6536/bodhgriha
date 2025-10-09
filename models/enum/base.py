@@ -76,7 +76,10 @@ class Style(Base):
 
 
 class CourseLevel(Base):
-    __tablename__ = 'course_levels'
+    __tablename__ = 'levels'
+    __table_args__ = dict(
+        schema="courses"
+    )
 
     id = Column(Integer, primary_key=True)
     code = Column(String(20), unique=True, nullable=False)

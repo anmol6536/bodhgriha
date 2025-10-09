@@ -57,7 +57,7 @@ about:
     # Grid Layouts
     grid:
       # Mobile: swipeable horizontal scroll with snap; Desktop: 2-column grid
-      two_col: "grid grid-flow-col auto-cols-[minmax(260px,1fr)] gap-6 max-w-5xl mx-auto overflow-x-auto snap-x snap-mandatory -mx-4 px-4 md:grid-flow-row md:auto-cols-auto md:grid-cols-2 md:overflow-visible md:snap-none md:mx-0 md:px-0"
+      two_col: "goal-grid goal-animate-grid grid md:grid-cols-2 gap-8"
       three_col: "grid md:grid-cols-2 lg:grid-cols-3 gap-8"
       responsive_col: "grid md:grid-cols-2 lg:grid-cols-3 gap-8"
 
@@ -65,7 +65,7 @@ about:
     card:
       # Interactive card: hover lift, subtle highlight bar, focus ring, and snap alignment for mobile scroll
       base: "group relative overflow-hidden bg-slate-100/60 backdrop-blur rounded-[.5rem] p-8 border border-slate-700/30 shadow transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:bg-white/70 focus-within:ring-2 focus-within:ring-emerald-500/40 outline-none snap-center before:content-[''] before:absolute before:inset-x-6 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-emerald-500/0 before:via-emerald-500 before:to-emerald-500/0 before:opacity-0 group-hover:before:opacity-100"
-      glass: "bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all"
+      glass: "glass-panel"
       title: "text-2xl font-bold text-[#0c5741] mb-4 transition-colors group-hover:text-emerald-700"
       title_white: "text-2xl font-bold text-white mb-4"
       text: "text-slate-700 leading-relaxed transition-colors duration-300 group-hover:text-slate-900"

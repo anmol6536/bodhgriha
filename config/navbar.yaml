@@ -6,7 +6,7 @@ navbar:
   styles:
     # Container Styles
     container:
-      nav: "fixed top-0 w-full z-40 backdrop-blur supports-[backdrop-filter]:bg-white/10"
+      nav: "fixed top-0 w-full z-50 glass-panel"
       inner: "container mx-auto px-4"
       flex: "flex h-14 items-center justify-between"
     

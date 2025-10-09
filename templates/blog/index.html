@@ -84,9 +84,6 @@
       style="filter: saturate(.8);">
       <source src="{{ url_for('static', filename='videos/blog-index.mov') }}" type="video/mp4">
       <source src="{{ url_for('static', filename='videos/hero.mp4') }}" type="video/mp4">
-      <!-- Fallback image if video fails to load -->
-      <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" 
-           style="background-image: url('{{ blog_hero_image_url | default(url_for('static', filename='images/blog/index.jpeg')) }}');"></div>
     </video>
     
     <div class="absolute inset-0 bg-gradient-to-br from-teal-900/30 via-emerald-800/25 to-slate-900/40"></div>
