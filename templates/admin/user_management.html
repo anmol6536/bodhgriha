@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title or "User Management" }}{% endblock %}
+
+{% block content %}
+<section class="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+  <div class="absolute inset-0 bg-gradient-to-br from-emerald-900/70 via-slate-900/75 to-slate-950/80"></div>
+  <div class="absolute inset-0 backdrop-blur-sm"></div>
+
+  <style>
+    dialog::backdrop {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+    }
+  </style>
+
+  <div class="relative z-10 container mx-auto max-w-6xl px-6 py-16">
+    <header class="mb-12 rounded-3xl border border-white/10 bg-white/10 p-10 backdrop-blur-2xl shadow-2xl shadow-emerald-900/30">
+      <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-[12px] uppercase tracking-[0.4em] text-white/50">Admin Control</p>
+            <h1 class="mt-3 text-3xl md:text-4xl font-semibold text-white">{{ page_title }}</h1>
+            <p class="mt-3 max-w-3xl text-sm text-white/70">{{ page_description }}</p>
+          </div>
+          <div class="flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-white/70">
+            <span class="inline-flex h-2 w-2 rounded-full bg-emerald-300"></span>
+            {{ total_count }} user{{ 's' if total_count != 1 else '' }}
+          </div>
+        </div>
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div class="text-sm text-white/65">
+            {% if total_count %}
+              Showing <span class="font-semibold text-white">{{ start_index }}&ndash;{{ end_index }}</span> of {{ total_count }} user{{ 's' if total_count != 1 else '' }}{% if search_query %} matching <span class="font-semibold text-white">"{{ search_query }}"</span>{% endif %}.
+            {% else %}
+              No users{% if search_query %} matching <span class="font-semibold text-white">"{{ search_query }}"</span>{% else %} available yet{% endif %}. Adjust your filters or check back soon.
+            {% endif %}
+          </div>
+          <form method="get"
+                action="{{ url_for('admin_users.user_dashboard') }}"
+                class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div class="relative flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 backdrop-blur sm:w-44">
+                <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M8 4h12"></path>
+                  <path d="M8 12h12"></path>
+                  <path d="M8 20h12"></path>
+                  <path d="M4 6h.01"></path>
+                  <path d="M4 12h.01"></path>
+                  <path d="M4 18h.01"></path>
+                </svg>
+                <select name="field"
+                        class="w-full bg-transparent text-sm text-white focus:outline-none">
+                  <option value="email" {{ 'selected' if search_field == 'email' else '' }}>Email</option>
+                  <option value="user_id" {{ 'selected' if search_field == 'user_id' else '' }}>User ID</option>
+                </select>
+              </div>
+              <div class="relative flex w-full items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 backdrop-blur md:w-80">
+                <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m20 20-3.5-3.5"></path>
+                </svg>
+                <input type="search"
+                       name="q"
+                       value="{{ search_query }}"
+                       placeholder="Search users..."
+                       class="w-full bg-transparent text-sm text-white placeholder:text-white/50 focus:outline-none"
+                       autocomplete="off"
+                       spellcheck="false">
+                <input type="hidden" name="page" value="1">
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="submit"
+                      class="inline-flex items-center gap-2 rounded-full border border-emerald-300/70 bg-emerald-500/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-100 transition hover:border-emerald-200 hover:bg-emerald-500/30 hover:text-white">
+                Search
+              </button>
+              {% if search_query %}
+                <a href="{{ url_for('admin_users.user_dashboard') }}"
+                   class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-white/40 hover:text-white">
+                  Reset
+                </a>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+        {% if user_id_error %}
+          <div class="rounded-2xl border border-amber-300/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            {{ user_id_error }}
+          </div>
+        {% endif %}
+      </div>
+    </header>
+
+    {% if users %}
+      <div class="glass-panel border border-white/10 bg-white/10 backdrop-blur-2xl shadow-xl shadow-black/30">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-white/10 text-sm text-white/80">
+            <thead class="bg-white/10 text-left text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+              <tr>
+                <th scope="col" class="px-6 py-4">User</th>
+                <th scope="col" class="px-6 py-4">Roles</th>
+                <th scope="col" class="px-6 py-4">Status</th>
+                <th scope="col" class="px-6 py-4">Created</th>
+                <th scope="col" class="px-6 py-4">Registrations</th>
+                <th scope="col" class="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10">
+              {% for summary in users %}
+                {% set user = summary.user %}
+                {% set dialog_id = 'user-modal-' ~ user.id %}
+                <tr class="transition hover:bg-white/5">
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-col gap-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-white">
+                          {{ user.first_name }} {{ user.last_name }}
+                        </span>
+                        <span class="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] uppercase tracking-[0.25em] text-white/60">
+                          ID {{ user.id }}
+                        </span>
+                      </div>
+                      <a href="mailto:{{ user.email }}" class="text-xs text-emerald-200 hover:text-emerald-100 transition">
+                        {{ user.email }}
+                      </a>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-wrap gap-2">
+                      {% for label in summary.role_labels %}
+                        <span class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/70">
+                          {{ label }}
+                        </span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-col gap-2">
+                      <div class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-white/70">
+                        <span class="h-1.5 w-1.5 rounded-full {{ 'bg-emerald-300' if user.is_active else 'bg-rose-300' }}"></span>
+                        {{ 'Active' if user.is_active else 'Disabled' }}
+                      </div>
+                      <div class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-white/70">
+                        <span class="h-1.5 w-1.5 rounded-full {{ 'bg-emerald-300' if summary.is_verified else 'bg-amber-300' }}"></span>
+                        {{ 'Verified' if summary.is_verified else 'Pending' }}
+                      </div>
+                      <div class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-white/70">
+                        <span class="h-1.5 w-1.5 rounded-full {{ 'bg-emerald-300' if summary.totp_enabled else 'bg-slate-400' }}"></span>
+                        {{ 'TOTP Enabled' if summary.totp_enabled else 'No 2FA' }}
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-col gap-1">
+                      <span class="font-medium text-white/85">
+                        {{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}
+                      </span>
+                      <span class="text-xs text-white/55">
+                        {{ user.created_at.strftime('%H:%M %Z') if user.created_at else '' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-white/65">
+                      <span>{{ summary.addresses|length }} address{{ '' if summary.addresses|length == 1 else 'es' }}</span>
+                      <span>{{ summary.schools|length }} school{{ '' if summary.schools|length == 1 else 's' }}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top text-right">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-2 rounded-full border border-emerald-300/70 bg-emerald-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100 transition hover:border-emerald-200 hover:bg-emerald-500/20 hover:text-white"
+                      data-modal-target="{{ dialog_id }}">
+                      View profile
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% for summary in users %}
+        {% set user = summary.user %}
+        {% set dialog_id = 'user-modal-' ~ user.id %}
+        <dialog id="{{ dialog_id }}" class="mx-auto w-full max-w-2xl rounded-3xl border border-white/10 bg-[#020617]/80 p-0 text-white shadow-2xl backdrop-blur-xl">
+          <form method="dialog" class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+            <div>
+              <p class="text-[12px] uppercase tracking-[0.4em] text-white/50">User Overview</p>
+              <h2 class="text-xl font-semibold text-white">{{ user.first_name }} {{ user.last_name }}</h2>
+            </div>
+            <button type="submit" class="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm text-white/70 hover:bg-white/20" data-modal-close>
+              Close
+            </button>
+          </form>
+
+          <div class="px-6 py-6 space-y-6">
+            <section class="rounded-2xl border border-white/10 bg-white/10 p-4">
+              <h3 class="text-sm font-semibold uppercase tracking-[0.25em] text-white/70">Account Signals</h3>
+              <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <dt class="text-xs uppercase tracking-[0.2em] text-white/50">Email</dt>
+                  <dd class="mt-1 text-sm font-medium text-white">{{ user.email }}</dd>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <dt class="text-xs uppercase tracking-[0.2em] text-white/50">Status</dt>
+                  <dd class="mt-1 text-sm font-medium text-white">
+                    {{ 'Verified' if summary.is_verified else 'Pending verification' }} · {{ 'Active' if user.is_active else 'Disabled' }}
+                  </dd>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <dt class="text-xs uppercase tracking-[0.2em] text-white/50">Roles</dt>
+                  <dd class="mt-1 flex flex-wrap gap-2 text-sm font-medium text-white">
+                    {% for label in summary.role_labels %}
+                      <span class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] text-white/70">
+                        {{ label }}
+                      </span>
+                    {% endfor %}
+                  </dd>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <dt class="text-xs uppercase tracking-[0.2em] text-white/50">Two-factor auth</dt>
+                  <dd class="mt-1 text-sm font-medium text-white">
+                    {{ 'TOTP enabled' if summary.totp_enabled else 'Not configured' }}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="rounded-2xl border border-white/10 bg-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold uppercase tracking-[0.25em] text-white/70">Addresses</h3>
+                <span class="text-xs uppercase tracking-[0.2em] text-white/50">{{ summary.addresses|length }} record{{ '' if summary.addresses|length == 1 else 's' }}</span>
+              </div>
+              {% if summary.addresses %}
+                <ul class="mt-4 space-y-4">
+                  {% for address in summary.addresses %}
+                    <li class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
+                      <div class="flex items-center justify-between gap-4">
+                        <p class="font-medium text-white">
+                          {{ address.line1 }}{% if address.line2 %}, {{ address.line2 }}{% endif %}
+                        </p>
+                        {% if address.is_primary %}
+                          <span class="inline-flex items-center rounded-full border border-emerald-300/70 bg-emerald-400/10 px-2 py-0.5 text-[11px] uppercase tracking-[0.25em] text-emerald-100">
+                            Primary
+                          </span>
+                        {% endif %}
+                      </div>
+                      <p class="mt-1 text-white/65">
+                        {{ address.city }}, {% if address.state %}{{ address.state }}, {% endif %}{{ address.postal_code }} · {{ address.country_iso2|upper }}
+                      </p>
+                      <p class="mt-2 text-xs uppercase tracking-[0.2em] text-white/50">
+                        Updated {{ address.updated_at.strftime('%b %d, %Y') if address.updated_at else 'Not available' }}
+                      </p>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="mt-4 text-sm text-white/60">No addresses on record.</p>
+              {% endif %}
+            </section>
+
+            <section class="rounded-2xl border border-white/10 bg-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold uppercase tracking-[0.25em] text-white/70">Registered Schools</h3>
+                <span class="text-xs uppercase tracking-[0.2em] text-white/50">{{ summary.schools|length }} record{{ '' if summary.schools|length == 1 else 's' }}</span>
+              </div>
+              {% if summary.schools %}
+                <ul class="mt-4 space-y-4">
+                  {% for school in summary.schools %}
+                    <li class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
+                      <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                          <span class="font-semibold text-white">{{ school.name }}</span>
+                          <span class="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] uppercase tracking-[0.25em] text-white/60">
+                            ID {{ school.id }}
+                          </span>
+                        </div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-white/55">
+                          {{ 'Verified' if school.is_verified else 'Pending verification' }} · {{ 'Active' if school.is_active else 'Inactive' }}
+                        </p>
+                        <p class="text-xs text-white/50">
+                          Registered {{ school.created_at.strftime('%b %d, %Y') if school.created_at else '—' }}
+                        </p>
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="mt-4 text-sm text-white/60">No schools linked to this user.</p>
+              {% endif %}
+            </section>
+          </div>
+        </dialog>
+      {% endfor %}
+
+      {% if total_pages > 1 %}
+        <nav class="mt-10 flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-2xl shadow-lg shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
+          {% if page > 1 %}
+            <a href="{{ url_for('admin_users.user_dashboard', page=page-1, q=search_query if search_query else None, field=search_field, per_page=per_page) }}"
+               class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white">
+              ‹ Previous
+            </a>
+          {% else %}
+            <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+              ‹ Previous
+            </span>
+          {% endif %}
+
+          <div class="flex flex-wrap items-center gap-2">
+            {% for page_number in range(1, total_pages + 1) %}
+              {% set is_active = page_number == page %}
+              <a href="{{ url_for('admin_users.user_dashboard', page=page_number, q=search_query if search_query else None, field=search_field, per_page=per_page) }}"
+                 class="inline-flex h-9 w-9 items-center justify-center rounded-full border {{ 'border-emerald-300/80 bg-emerald-500/20 text-white' if is_active else 'border-white/10 bg-white/10 text-white/70 hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white' }}">
+                {{ page_number }}
+              </a>
+            {% endfor %}
+          </div>
+
+          {% if page < total_pages %}
+            <a href="{{ url_for('admin_users.user_dashboard', page=page+1, q=search_query if search_query else None, field=search_field, per_page=per_page) }}"
+               class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white">
+              Next ›
+            </a>
+          {% else %}
+            <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+              Next ›
+            </span>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="glass-panel mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/10 p-12 text-center backdrop-blur-2xl">
+        <p class="text-lg font-semibold text-white">
+          No users{% if search_query %} found for “{{ search_query }}”{% else %} available yet{% endif %}
+        </p>
+        <p class="mt-3 text-sm text-white/65">
+          {% if search_query %}
+            Try adjusting your search or clearing the filter to review all members.
+          {% else %}
+            Once users join Bodhgriha, their accounts will appear here for review.
+          {% endif %}
+        </p>
+        {% if search_query %}
+          <a href="{{ url_for('admin_users.user_dashboard') }}"
+             class="mt-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-white/40 hover:text-white">
+            Clear search
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/schools-dashboard.js') }}" nonce="{{ csp_nonce() }}"></script>
+{% endblock %}

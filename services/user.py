@@ -3,22 +3,203 @@ from __future__ import annotations
 import hashlib
 import secrets
 import string
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Any
-from typing import Tuple, List, Optional
+from typing import Dict, Any, Tuple, List, Optional, Sequence
 
 import pyotp
 from flask import request, g
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import current_user
 from flask import url_for
 
 from forms.user import LoginForm, AddressForm
 from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential, Address
+from models.yoga.base import YogaSchool
 from utilities import LOGGER
+
+
+ROLE_LABEL_MAP: tuple[tuple[int, str], ...] = (
+    (int(RoleBits.MEMBER), "Member"),
+    (int(RoleBits.INSTRUCTOR), "Instructor"),
+    (int(RoleBits.EDITOR), "Editor"),
+    (int(RoleBits.STAFF), "Staff"),
+    (int(RoleBits.ADMIN), "Admin"),
+)
+
+
+@dataclass(slots=True)
+class AdminUserSummary:
+    user: User
+    totp_enabled: bool
+    is_verified: bool
+    addresses: Sequence[Address]
+    schools: Sequence[YogaSchool]
+    role_labels: Sequence[str]
+
+
+def _normalize_boolish(value: Any) -> bool:
+    """
+    Interpret common truthy/falsy representations found in meta payloads.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if not normalized:
+            return False
+        return normalized not in {"0", "false", "no", "off", "pending"}
+    return bool(value)
+
+
+def _is_user_verified(user: User) -> bool:
+    meta = user.meta or {}
+    truthy_keys = (
+        "is_verified",
+        "verified",
+        "email_verified",
+        "is_email_verified",
+    )
+    for key in truthy_keys:
+        if key in meta:
+            return _normalize_boolish(meta.get(key))
+
+    timestamp_keys = (
+        "verified_at",
+        "email_verified_at",
+        "email_confirmed_at",
+    )
+    for key in timestamp_keys:
+        if meta.get(key):
+            return True
+    return False
+
+
+def _apply_admin_user_search_filter(statement, search_field: str | None, search_value: str | None):
+    if not search_value:
+        return statement
+
+    field = (search_field or "email").lower()
+    query = search_value.strip()
+    if not query:
+        return statement
+
+    if field == "user_id":
+        try:
+            user_id = int(query)
+        except (TypeError, ValueError):
+            return statement.where(User.id == -1)
+        return statement.where(User.id == user_id)
+
+    if field == "email":
+        like_expr = f"%{query}%"
+        return statement.where(User.email.ilike(like_expr))
+
+    # Fallback: search email as default.
+    like_expr = f"%{query}%"
+    return statement.where(User.email.ilike(like_expr))
+
+
+def list_users_for_admin(
+        db: Session,
+        *,
+        search_field: str | None = None,
+        search_value: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+) -> list[AdminUserSummary]:
+    stmt = (
+        select(User)
+        .options(selectinload(User.addresses))
+        .order_by(User.created_at.desc().nullslast(), User.id.desc())
+    )
+    stmt = _apply_admin_user_search_filter(stmt, search_field, search_value)
+
+    if offset:
+        stmt = stmt.offset(offset)
+    if limit is not None:
+        stmt = stmt.limit(limit)
+
+    users = list(db.scalars(stmt))
+    if not users:
+        return []
+
+    user_ids = [user.id for user in users]
+
+    totp_user_ids = set(
+        db.scalars(
+            select(TwoFactorCredential.user_id)
+            .where(TwoFactorCredential.user_id.in_(user_ids))
+            .where(TwoFactorCredential.method == TwoFAMethod.TOTP)
+            .where(TwoFactorCredential.enabled.is_(True))
+            .where(TwoFactorCredential.verified_at.isnot(None))
+        )
+    )
+
+    schools_map: dict[int, list[YogaSchool]] = {uid: [] for uid in user_ids}
+    fetched_schools = list(
+        db.scalars(
+            select(YogaSchool).where(YogaSchool.owner_id.in_(user_ids))
+        )
+    )
+    for school in fetched_schools:
+        schools_map.setdefault(school.owner_id, []).append(school)
+
+    summaries: list[AdminUserSummary] = []
+    fallback_timestamp = datetime.min.replace(tzinfo=timezone.utc)
+
+    for user in users:
+        addresses = sorted(
+            list(user.addresses or []),
+            key=lambda addr: (
+                not getattr(addr, "is_primary", False),
+                getattr(addr, "created_at", None) or fallback_timestamp,
+            ),
+        )
+        schools = sorted(
+            schools_map.get(user.id, []),
+            key=lambda sch: (
+                getattr(sch, "created_at", None) or fallback_timestamp,
+                sch.id,
+            ),
+        )
+        role_bits_value = int(getattr(user, "role_bits", 0) or 0)
+        role_labels = [
+            label for bit, label in ROLE_LABEL_MAP if role_bits_value & bit
+        ]
+        if not role_labels:
+            role_labels = ["Member"]
+
+        summaries.append(
+            AdminUserSummary(
+                user=user,
+                totp_enabled=user.id in totp_user_ids,
+                is_verified=_is_user_verified(user),
+                addresses=tuple(addresses),
+                schools=tuple(schools),
+                role_labels=tuple(role_labels),
+            )
+        )
+
+    return summaries
+
+
+def count_users_for_admin(
+        db: Session,
+        *,
+        search_field: str | None = None,
+        search_value: str | None = None,
+) -> int:
+    stmt = select(func.count()).select_from(User)
+    stmt = _apply_admin_user_search_filter(stmt, search_field, search_value)
+    return db.scalar(stmt) or 0
 
 
 def add_user(
@@ -461,6 +642,7 @@ def dashboard_links() -> List[Dict[str, str]]:
                     {"label": "School Dashboard", "url": url_for('schools.school_dashboard')},
                     {"label": "Register Blog", "url": url_for('blog.upload')},
                     {"label": "Blog Dashboard", "url": url_for('blog.dashboard')},
+                    {"label": "User Management", "url": url_for('admin_users.user_dashboard')},
                 ]
             }
         )

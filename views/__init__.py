@@ -23,6 +23,8 @@ def register_views(app: Flask) -> None:
     # Admin - Users
     from .admin.school import bp as school_bp
     app.register_blueprint(school_bp, url_prefix="/admin/schools")
+    from .admin.user_management import bp as admin_users_bp
+    app.register_blueprint(admin_users_bp, url_prefix="/admin/users")
     
     from .content.testimonials import bp as testimonials_bp
     app.register_blueprint(testimonials_bp, url_prefix="/testimonials")
