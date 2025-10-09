@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% from "ui/macros/form.html" import render_form %}
+
+{% block title %}{{ page_title or "Schools Dashboard" }}{% endblock %}
+
+{% block content %}
+<section class="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+  <div class="absolute inset-0 bg-gradient-to-br from-emerald-900/70 via-slate-900/75 to-slate-950/80"></div>
+  <div class="absolute inset-0 backdrop-blur-sm"></div>
+
+  <style>
+    dialog::backdrop {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+    }
+  </style>
+
+  <div class="relative z-10 container mx-auto max-w-6xl px-6 py-16">
+    <header class="mb-12 rounded-3xl border border-white/10 bg-white/10 p-10 backdrop-blur-2xl shadow-2xl shadow-emerald-900/30">
+      <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-[12px] uppercase tracking-[0.4em] text-white/50">Admin Control</p>
+            <h1 class="mt-3 text-3xl md:text-4xl font-semibold text-white">{{ page_title }}</h1>
+            <p class="mt-3 max-w-3xl text-sm text-white/70">{{ page_description }}</p>
+          </div>
+          <div class="flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-white/70">
+            <span class="inline-flex h-2 w-2 rounded-full bg-emerald-300"></span>
+            {{ total_count }} school{{ 's' if total_count != 1 else '' }}
+          </div>
+        </div>
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div class="text-sm text-white/65">
+            {% if total_count %}
+              Showing <span class="font-semibold text-white">{{ start_index }}&ndash;{{ end_index }}</span> of {{ total_count }} school{{ 's' if total_count != 1 else '' }}{% if search_query %} matching <span class="font-semibold text-white">"{{ search_query }}"</span>{% endif %}.
+            {% else %}
+              No schools{% if search_query %} matching <span class="font-semibold text-white">"{{ search_query }}"</span>{% else %} available yet{% endif %}. Adjust your filters or check back soon.
+            {% endif %}
+          </div>
+          <form method="get"
+                action="{{ url_for('schools.school_dashboard') }}"
+                class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <div class="relative flex w-full items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 backdrop-blur md:w-80">
+              <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.5-3.5"></path>
+              </svg>
+              <input type="search"
+                     name="q"
+                     value="{{ search_query }}"
+                     placeholder="Search by school name..."
+                     class="w-full bg-transparent text-sm text-white placeholder:text-white/50 focus:outline-none"
+                     autocomplete="off"
+                     spellcheck="false">
+              <input type="hidden" name="page" value="1">
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="submit"
+                      class="inline-flex items-center gap-2 rounded-full border border-emerald-300/70 bg-emerald-500/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-100 transition hover:border-emerald-200 hover:bg-emerald-500/30 hover:text-white">
+                Search
+              </button>
+              {% if search_query %}
+                <a href="{{ url_for('schools.school_dashboard') }}"
+                   class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-white/40 hover:text-white">
+                  Reset
+                </a>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </div>
+    </header>
+
+    {% if schools %}
+      <div class="glass-panel border border-white/10 bg-white/10 backdrop-blur-2xl shadow-xl shadow-black/30">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-white/10 text-sm text-white/80">
+            <thead class="bg-white/10 text-left text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+              <tr>
+                <th scope="col" class="px-6 py-4">School</th>
+                <th scope="col" class="px-6 py-4">Status</th>
+                <th scope="col" class="px-6 py-4">Owner</th>
+                <th scope="col" class="px-6 py-4">Registered</th>
+                <th scope="col" class="px-6 py-4">Contact</th>
+                <th scope="col" class="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10">
+              {% for school in schools %}
+                {% set dialog_id = 'school-modal-' ~ school.id %}
+                <tr class="transition hover:bg-white/10">
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-col gap-1">
+                      <span class="text-base font-semibold text-white">{{ school.name }}</span>
+                      <span class="text-xs text-white/60">{{ school.email }}</span>
+                      {% if school.description %}
+                        <p class="mt-2 text-xs text-white/55 line-clamp-2">{{ school.description }}</p>
+                      {% endif %}
+                      <span class="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-white/40">
+                        ID #{{ school.id }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-col gap-2">
+                      <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">
+                        <span class="h-1.5 w-1.5 rounded-full {{ 'bg-emerald-300' if school.is_verified else 'bg-amber-300' }}"></span>
+                        {{ 'Verified' if school.is_verified else 'Pending' }}
+                      </span>
+                      <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">
+                        <span class="h-1.5 w-1.5 rounded-full {{ 'bg-emerald-300' if school.is_active else 'bg-rose-300' }}"></span>
+                        {{ 'Active' if school.is_active else 'Inactive' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top">
+                    {% if school.owner %}
+                      <div class="flex flex-col gap-1">
+                        <span class="font-medium text-white/90">
+                          {{ ((school.owner.first_name or '') ~ ' ' ~ (school.owner.last_name or '')) | trim }}
+                        </span>
+                        {% if school.owner.email %}
+                          <span class="text-xs text-white/55">{{ school.owner.email }}</span>
+                        {% endif %}
+                      </div>
+                    {% else %}
+                      <span class="text-xs text-white/50">Unknown</span>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-col gap-1">
+                      <span class="font-medium text-white/85">
+                        {{ school.created_at.strftime('%b %d, %Y') if school.created_at else '—' }}
+                      </span>
+                      {% if school.registration_number %}
+                        <span class="text-xs text-white/55">#{{ school.registration_number }}</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top">
+                    <div class="flex flex-col gap-1">
+                      {% if school.phone %}
+                        <span>{{ school.phone }}</span>
+                      {% endif %}
+                      {% if school.website %}
+                        <a href="{{ school.website }}" target="_blank" rel="noopener" class="text-emerald-200 hover:text-emerald-100 transition text-xs">
+                          {{ school.website }}
+                        </a>
+                      {% else %}
+                        <span class="text-xs text-white/50">No website</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 align-top text-right">
+                    <div class="flex flex-col items-end gap-2">
+                      <a href="{{ url_for('schools.detail', school_id=school.id) }}"
+                         class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70 transition hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white">
+                        Profile
+                      </a>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-full border border-emerald-300/70 bg-emerald-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100 transition hover:border-emerald-200 hover:bg-emerald-500/20 hover:text-white"
+                        data-modal-target="{{ dialog_id }}">
+                        Update
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% for school in schools %}
+        {% set dialog_id = 'school-modal-' ~ school.id %}
+        <dialog id="{{ dialog_id }}" class="mx-auto w-full max-w-2xl rounded-3xl border border-white/10 bg-[#020617]/80 p-0 text-white shadow-2xl backdrop-blur-xl">
+          <form method="dialog" class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+            <div>
+              <p class="text-[12px] uppercase tracking-[0.4em] text-white/50">Edit School</p>
+              <h2 class="text-xl font-semibold text-white">{{ school.name }}</h2>
+            </div>
+            <button type="submit" class="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm text-white/70 hover:bg-white/20" data-modal-close>
+              Close
+            </button>
+          </form>
+
+          <div class="px-6 py-6">
+            {% set field_order = [
+              'name',
+              'description',
+              'email',
+              'phone',
+              'website',
+              'registration_number',
+              'certification_body',
+              'is_verified',
+              'is_active'
+            ] %}
+            {% set input_base = 'w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/60 shadow-lg backdrop-blur focus:border-emerald-300 focus:ring-emerald-300/70 transition' %}
+            {% set form_attrs = {
+              'name': {'class': input_base},
+              'description': {'class': input_base ~ ' min-h-[7rem]'},
+              'email': {'class': input_base, 'autocomplete': 'email'},
+              'phone': {'class': input_base, 'autocomplete': 'tel'},
+              'website': {'class': input_base, 'autocomplete': 'url'},
+              'registration_number': {'class': input_base},
+              'certification_body': {'class': input_base}
+            } %}
+            {{ render_form(
+              forms[school.id],
+              action=url_for('schools.update_school', school_id=school.id),
+              method='POST',
+              submit_label='Save changes',
+              field_order=field_order,
+              extra_attrs=form_attrs,
+              help_texts={
+                'is_verified': 'Mark as verified to display publicly across the platform.',
+                'is_active': 'Toggle visibility if a school needs to be temporarily hidden.'
+              },
+              submit_classes='w-full inline-flex items-center justify-center rounded-2xl border border-emerald-300/70 bg-emerald-500/20 px-4 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-emerald-100 transition hover:border-emerald-200 hover:bg-emerald-500/30 hover:text-white',
+              grid_classes='grid grid-cols-1 gap-4'
+            ) }}
+          </div>
+        </dialog>
+      {% endfor %}
+      {% if total_pages > 1 %}
+        <nav class="mt-10 flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-2xl shadow-lg shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
+          {% if page > 1 %}
+            <a href="{{ url_for('schools.school_dashboard', page=page-1, q=search_query if search_query else None) }}"
+               class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white">
+              ‹ Previous
+            </a>
+          {% else %}
+            <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+              ‹ Previous
+            </span>
+          {% endif %}
+
+          <div class="flex flex-wrap items-center gap-2">
+            {% for page_number in range(1, total_pages + 1) %}
+              {% set is_active = page_number == page %}
+              <a href="{{ url_for('schools.school_dashboard', page=page_number, q=search_query if search_query else None) }}"
+                 class="inline-flex h-9 w-9 items-center justify-center rounded-full border {{ 'border-emerald-300/80 bg-emerald-500/20 text-white' if is_active else 'border-white/10 bg-white/10 text-white/70 hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white' }}">
+                {{ page_number }}
+              </a>
+            {% endfor %}
+          </div>
+
+          {% if page < total_pages %}
+            <a href="{{ url_for('schools.school_dashboard', page=page+1, q=search_query if search_query else None) }}"
+               class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white">
+              Next ›
+            </a>
+          {% else %}
+            <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+              Next ›
+            </span>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="glass-panel mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/10 p-12 text-center backdrop-blur-2xl">
+        <p class="text-lg font-semibold text-white">
+          No schools{% if search_query %} found for “{{ search_query }}”{% else %} registered yet{% endif %}
+        </p>
+        <p class="mt-3 text-sm text-white/65">
+          {% if search_query %}
+            Try adjusting your search or clearing the filter to review all partner schools.
+          {% else %}
+            Once instructors submit their schools, they will appear here for verification and curation.
+          {% endif %}
+        </p>
+        {% if search_query %}
+          <a href="{{ url_for('schools.school_dashboard') }}"
+             class="mt-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-white/40 hover:text-white">
+            Clear search
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/schools-dashboard.js') }}" nonce="{{ csp_nonce() }}"></script>
+{% endblock %}

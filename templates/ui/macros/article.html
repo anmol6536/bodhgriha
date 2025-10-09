@@ -1,18 +1,74 @@
 {# templates/partials/blog_macros.html #}
+
+{% macro _details_card(author_name, published_at, reading_time, brand_primary) %}
+    <div class="space-y-5">
+        <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold uppercase tracking-[0.3em] text-black/50">Article Details</span>
+            <span class="h-2 w-2 rounded-full" style="background: {{ brand_primary }};"></span>
+        </div>
+
+        <ul class="space-y-3 text-sm text-black/75">
+            {% if author_name %}
+                <li class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-black/10 text-black/70">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z" />
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-black/40">Author</p>
+                        <p class="font-medium text-black/90">{{ author_name }}</p>
+                    </div>
+                </li>
+            {% endif %}
+            {% if published_at %}
+                <li class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/10 text-black/70">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path d="M7 2v2H5a2 2 0 0 0-2 2v12a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2Z" />
+                            <path d="M3 8h18" />
+                            <path d="m16 14-3 3-2-2-3 3" />
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-black/40">Published</p>
+                        <p class="font-medium text-black/90">{{ published_at.strftime('%b %d, %Y') }}</p>
+                    </div>
+                </li>
+            {% endif %}
+            {% if reading_time %}
+                <li class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/10 text-black/70">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 7v5l3 3"></path>
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-black/40">Reading Time</p>
+                        <p class="font-medium text-black/90">{{ reading_time }} min</p>
+                    </div>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+{% endmacro %}
+
+
 {% macro render_blog(
     post,
     container="container mx-auto px-4",
     header_wrap="mx-auto max-w-3xl",
-    body_wrap="mx-auto mt-8 grid gap-8 lg:grid-cols-[1fr,minmax(220px,280px)] lg:items-start max-w-5xl",
-    prose="prose prose-invert max-w-3xl prose-headings:font-extrabold prose-h1:text-4xl md:prose-h1:text-5xl prose-a:text-primary-400 hover:prose-a:text-primary-300",
-    aside_panel="hidden lg:block sticky top-24 self-start",
-    aside_card="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur",
-    tag_chip="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 ring-1 ring-white/15 hover:bg-white/15",
-    h1_classes="mt-8 text-3xl md:text-5xl font-extrabold tracking-tight text-white",
-    meta_row="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/70",
-    cover_classes="relative mx-auto max-w-5xl overflow-hidden rounded-2xl shadow-lg ring-1 ring-white/10",
+    body_wrap="mx-auto mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr),minmax(250px,300px)] lg:items-start max-w-5xl",
+    prose="prose prose-invert max-w-3xl prose-headings:font-extrabold prose-h1:text-4xl md:prose-h1:text-5xl prose-a:text-primary-300 hover:prose-a:text-primary-200",
+    aside_panel="hidden lg:block sticky top-24 self-start space-y-4",
+    aside_card="rounded-2xl border border-white/10 bg-white/10 backdrop-blur-xl p-6 shadow-lg shadow-black/20",
+    h1_classes="mt-10 text-3xl md:text-5xl font-extrabold tracking-tight text-black",
+    meta_row="mt-6 flex flex-wrap items-center gap-3 text-sm text-black/70",
+    meta_chip="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[12px] font-medium text-black/80 backdrop-blur",
+    cover_classes="relative mx-auto max-w-5xl overflow-hidden rounded-3xl shadow-2xl shadow-black/40 ring-1 ring-white/15",
     brand_primary="#0c5741",
-    brand_text="text-white",
+    brand_text="text-black",
     toc_html=None,
     author_override=None
 ) %}
@@ -20,25 +76,63 @@
         {# Cover #}
         {% if post.meta and post.meta.hero_image %}
             <figure class="{{ cover_classes }}">
-                <img src="{{ post.meta.hero_image }}" alt="" class="w-full h-auto object-cover">
+                <img src="{{ post.meta.hero_image }}" alt="{{ post.meta.hero_alt or post.title }}" class="h-auto w-full object-cover">
                 <div class="absolute inset-x-0 bottom-0 h-1" style="background-color: {{ brand_primary }}"></div>
             </figure>
         {% endif %}
 
         {# Header #}
         <header class="{{ header_wrap }}">
+            {% set author_name = author_override if author_override is not none else (post.meta.author if post.meta else None) %}
+            {% set reading_time = post.meta.reading_time if post.meta else None %}
+            {% set tag_list = post.meta.tags if post.meta and post.meta.tags else [] %}
+            {% set meta_has_items = author_name or post.published_at or reading_time %}
+
             {% if post.title %}
                 <h1 class="{{ h1_classes }}">{{ post.title }}</h1>
             {% endif %}
-            {% if post.meta.author or post.published_at or post.meta.reading_time %}
+            {% if meta_has_items %}
                 <div class="{{ meta_row }}">
-                    {% if author_override or post.meta.author %}<span class="font-medium {{ brand_text }}">{{ author_override or post.meta.author }}</span>{% endif %}
-                    {% if post.published_at %}
-                        <time datetime="{{ post.published_at.isoformat() if post.published_at else '' }}">
-                            {{ post.published_at.strftime('%b %d, %Y') if post.published_at else '' }}
-                        </time>
+                    {% if author_name %}
+                        <span class="{{ meta_chip }}">
+                            <svg class="h-4 w-4 text-black/60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/>
+                            </svg>
+                            <span>{{ author_name }}</span>
+                        </span>
                     {% endif %}
-                    {% if post.meta.reading_time %}<span aria-hidden="true">•</span><span>{{ post.meta.reading_time }} min read</span>{% endif %}
+                    {% if post.published_at %}
+                        <span class="{{ meta_chip }}">
+                            <svg class="h-4 w-4 text-black/60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M7 2v2H5a2 2 0 0 0-2 2v12a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2Z"/>
+                                <path d="M3 8h18"/>
+                            </svg>
+                            <time datetime="{{ post.published_at.isoformat() }}">{{ post.published_at.strftime('%b %d, %Y') }}</time>
+                        </span>
+                    {% endif %}
+                    {% if reading_time %}
+                        <span class="{{ meta_chip }}">
+                            <svg class="h-4 w-4 text-black/60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M12 5a7 7 0 1 1-7 7"/>
+                                <path d="M12 7v5l3 3"/>
+                            </svg>
+                            <span>{{ reading_time }} min read</span>
+                        </span>
+                    {% endif %}
+                    {% if tag_list %}
+                        <span class="{{ meta_chip }}">
+                            <svg class="h-4 w-4 text-black/60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="m20.59 13.41-7.18-7.18A2 2 0 0 0 12 5H5a2 2 0 0 0-2 2v7a2 2 0 0 0 .59 1.41l7.18 7.18a2 2 0 0 0 2.82 0l7-7a2 2 0 0 0 0-2.82ZM7.5 9A1.5 1.5 0 1 1 9 7.5 1.5 1.5 0 0 1 7.5 9Z"/>
+                            </svg>
+                            <span>{{ tag_list|length }} tag{{ 's' if tag_list|length != 1 else '' }}</span>
+                        </span>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if meta_has_items %}
+                <div class="mt-6 rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur-lg shadow-lg shadow-black/20 lg:hidden">
+                    {{ _details_card(author_name, post.published_at, reading_time, brand_primary) }}
                 </div>
             {% endif %}
         </header>
@@ -50,31 +144,47 @@
                 {{ post.body_html|safe }}
             </div>
 
-            {% if toc_html %}
+            {% set show_details_panel = meta_has_items %}
+            {% if show_details_panel or toc_html %}
                 <aside class="{{ aside_panel }}">
-                    <div class="{{ aside_card }}">
-                        <div class="text-xs font-semibold tracking-wider text-white/70 mb-2">ON THIS PAGE</div>
-                        <nav class="prose prose-invert prose-sm max-w-none [&_a]:no-underline [&_a:hover]:underline"
-                             style="--tw-prose-links: {{ brand_primary }};">
-                            {{ toc_html|safe }}
-                        </nav>
-                    </div>
+                    {% if show_details_panel %}
+                        <div class="{{ aside_card }}">
+                            {{ _details_card(author_name, post.published_at, reading_time, brand_primary) }}
+                        </div>
+                    {% endif %}
+                    {% if toc_html %}
+                        <div class="{{ aside_card }} {% if show_details_panel %}lg:mt-4{% endif %}">
+                            <div class="mb-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-black/50">On This Page</div>
+                            <nav class="prose prose-invert prose-sm max-w-none [&_a]:no-underline [&_a:hover]:underline"
+                                 style="--tw-prose-links: {{ brand_primary }};">
+                                {{ toc_html|safe }}
+                            </nav>
+                        </div>
+                    {% endif %}
                 </aside>
             {% endif %}
         </div>
 
-        {% if post.meta.tags %}
-            <footer class="mx-auto mt-10 max-w-3xl">
-                <ul class="flex flex-wrap gap-2">
-                    {% for t in post.meta.tags %}
-                        <li>
-                            <a href="#"
-                               class="{{ tag_chip }}">
-                                #{{ t }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
+        {% if tag_list %}
+            <footer class="mx-auto mt-12 max-w-3xl">
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+                    <div class="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.3em] text-black/60">
+                        <svg class="h-4 w-4 text-black/60" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="m20.59 13.41-7.18-7.18A2 2 0 0 0 12 5H5a2 2 0 0 0-2 2v7a2 2 0 0 0 .59 1.41l7.18 7.18a2 2 0 0 0 2.82 0l7-7a2 2 0 0 0 0-2.82Z"/>
+                        </svg>
+                        <span>Explore Tags</span>
+                    </div>
+                    <ul class="flex flex-wrap gap-2">
+                        {% for t in tag_list %}
+                            <li>
+                                <a href="#"
+                                   class="{{ tag_chip }}">
+                                    #{{ t }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </footer>
         {% endif %}
     </article>

@@ -1,6 +1,6 @@
 # forms/school.py
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, BooleanField
+from wtforms import StringField, TextAreaField, BooleanField, HiddenField
 from wtforms.validators import DataRequired, Length, Optional, Email, URL, Regexp
 
 
@@ -13,3 +13,6 @@ class SchoolRegisterForm(FlaskForm):
     website = StringField("Website", validators=[Optional(), URL(), Length(max=255)])
     registration_number = StringField("Registration Number", validators=[Optional(), Length(max=100)])
     certification_body = StringField("Certification Body", validators=[Optional(), Length(max=255)])
+    is_verified = BooleanField("Verified", default=False)
+    is_active = BooleanField("Active", default=True)
+    next = HiddenField()

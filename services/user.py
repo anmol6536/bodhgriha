@@ -453,6 +453,18 @@ def dashboard_links() -> List[Dict[str, str]]:
             }
         )
 
+    if current_user.has_previlige(RoleBits.ADMIN):
+        sidebar.append(
+            {
+                "title": "Admin",
+                "links": [
+                    {"label": "School Dashboard", "url": url_for('schools.school_dashboard')},
+                    {"label": "Register Blog", "url": url_for('blog.upload')},
+                    {"label": "Blog Dashboard", "url": url_for('blog.dashboard')},
+                ]
+            }
+        )
+
 
     return sidebar
 

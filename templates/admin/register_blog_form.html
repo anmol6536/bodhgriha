@@ -12,9 +12,9 @@
     </video>
 
     <div class="max-w-xl mx-auto mt-20 rounded-xl py-40">
-        <div class="bg-white/20 backdrop-blur rounded-2xl p-8">
+        <div class="glass-panel rounded-2xl p-8 shadow-lg">
             {{ render_form(form,
-                    action=url_for('blog.upload_blog'),
+                    action=url_for('blog.upload'),
                     method='POST',
                     submit_label='Upload Blog',
                     field_order=['md_file','publish'],

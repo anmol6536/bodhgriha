@@ -14,20 +14,25 @@ bp = Blueprint("blog", __name__)
 @bp.route("/upload", methods=["GET", "POST"])
 @login_required
 @role_validation("ADMIN")
-def upload_blog():
+def upload():
     form = BlogUploadForm()
     if form.validate_on_submit():
-        f = form.md_file.data
-        body_md = f.read().decode("utf-8", errors="replace")
+        try:
 
-        metadata, _, _ = parse_markdown(body_md)
-        slug = metadata.pop("slug")
+            f = form.md_file.data
+            body_md = f.read().decode("utf-8", errors="replace")
 
-        with uow() as db:
-            register_blog(db, slug=slug, body_md=body_md)  # attach author if you have it
+            metadata, _, _ = parse_markdown(body_md)
+            slug = metadata.pop("slug")
+            
+            with uow() as db:
+                register_blog(db, slug=slug, body_md=body_md)  # attach author if you have it
+        except Exception as e:
+            flash(f"Error uploading blog: {str(e)}", "error")
+            return redirect(url_for("blog.upload"))
 
         flash("Blog uploaded.", "success")
-        return redirect(url_for("blog.upload_blog"))
+        return redirect(url_for("blog.upload"))
 
     return render_template("admin/register_blog_form.html", form=form, **_context())
 
@@ -98,3 +103,89 @@ def index():
                            blog_hero_subtitle=blog_hero_subtitle,
                            posts=posts, 
                            **context)
+
+
+@bp.route("/dashboard")
+@login_required
+@role_validation("ADMIN")
+def dashboard():
+    from services.blog import get_all_blogs
+    admin_context = _invert_navbar_colors(_context())
+
+    with uow(readonly=True) as db:
+        posts = get_all_blogs(db, published_only=False)
+
+    admin_context.update(
+        {
+            "posts": posts,
+            "blog_page_title": "Blog Dashboard",
+            "blog_dashboard_description": (
+                "Review draft and published posts, manage visibility, "
+                "and keep the Bodhgriha voice consistent."
+            ),
+        }
+    )
+
+    return render_template("blog/dashboard.html", **admin_context)
+
+
+@bp.route("/publish/<int:blog_id>", methods=["POST"])
+@login_required
+@role_validation("ADMIN")
+def publish_blog(blog_id: int):
+    from services.blog import publish_blog as publish_blog_service
+
+    redirect_to = request.form.get("next") or url_for("blog.dashboard")
+
+    try:
+        with uow() as db:
+            publish_blog_service(db, blog_id)
+        flash("Blog published.", "success")
+    except ValueError:
+        flash("Blog not found.", "error")
+    except Exception as exc:
+        flash(f"Error publishing blog: {exc}", "error")
+
+    return redirect(redirect_to)
+
+
+@bp.route("/unpublish/<int:blog_id>", methods=["POST"])
+@login_required
+@role_validation("ADMIN")
+def unpublish_blog(blog_id: int):
+    from services.blog import unpublish_blog as unpublish_blog_service
+
+    redirect_to = request.form.get("next") or url_for("blog.dashboard")
+
+    try:
+        with uow() as db:
+            unpublish_blog_service(db, blog_id)
+        flash("Blog unpublished.", "success")
+    except ValueError:
+        flash("Blog not found.", "error")
+    except Exception as exc:
+        flash(f"Error unpublishing blog: {exc}", "error")
+
+    return redirect(redirect_to)
+
+
+@bp.route("/delete/<int:blog_id>", methods=["POST"])
+@login_required
+@role_validation("ADMIN")
+def delete_blog(blog_id: int):
+    from services.blog import delete_blog_by_id
+
+    redirect_to = request.form.get("next") or url_for("blog.dashboard")
+
+    try:
+        try:
+            with uow() as db:
+                delete_blog_by_id(db, blog_id)
+        except ValueError as ve:
+            flash(f"Error deleting blog: {str(ve)}", "error")
+            return redirect(redirect_to)
+        flash("Blog deleted.", "success")
+    except Exception as e:
+        flash(f"Error deleting blog: {str(e)}", "error")
+
+    return redirect(redirect_to)
