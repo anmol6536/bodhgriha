@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional, Sequence
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.exc import IntegrityError
 
@@ -64,12 +64,34 @@ def register_blog(
     return post
 
 
+def _apply_blog_search_filters(statement, search: Optional[str], search_field: Optional[str]):
+    if not search:
+        return statement
+
+    normalized_field = (search_field or "title").strip().lower()
+    like_expr = f"%{search}%"
+
+    if normalized_field == "slug":
+        return statement.where(BlogPost.slug.ilike(like_expr))
+    if normalized_field == "title":
+        return statement.where(BlogPost.title.ilike(like_expr))
+
+    return statement.where(
+        or_(
+            BlogPost.title.ilike(like_expr),
+            BlogPost.slug.ilike(like_expr),
+        )
+    )
+
+
 def get_all_blogs(
-        db: Session,
-        *,
-        published_only: bool = True,
-        limit: Optional[int] = None,
-        offset: int = 0,
+    db: Session,
+    *,
+    published_only: bool = True,
+    limit: Optional[int] = None,
+    offset: int = 0,
+    search: Optional[str] = None,
+    search_field: Optional[str] = None,
 ) -> Sequence[BlogPost]:
     """
     Retrieve blog posts, newest first.
@@ -78,12 +100,27 @@ def get_all_blogs(
     stmt = select(BlogPost).options(selectinload(BlogPost.author))
     if published_only:
         stmt = stmt.where(BlogPost.is_published.is_(True))
+    stmt = _apply_blog_search_filters(stmt, search, search_field)
     stmt = stmt.order_by(BlogPost.published_at.desc().nullslast(), BlogPost.id.desc())
     if offset:
         stmt = stmt.offset(offset)
     if limit is not None:
         stmt = stmt.limit(limit)
     return list(db.scalars(stmt))
+
+
+def count_blogs(
+    db: Session,
+    *,
+    published_only: bool = True,
+    search: Optional[str] = None,
+    search_field: Optional[str] = None,
+) -> int:
+    stmt = select(func.count()).select_from(BlogPost)
+    if published_only:
+        stmt = stmt.where(BlogPost.is_published.is_(True))
+    stmt = _apply_blog_search_filters(stmt, search, search_field)
+    return db.scalar(stmt) or 0
 
 
 def delete_blog_by_id(db: Session, blog_id: int) -> None:

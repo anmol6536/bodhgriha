@@ -1,17 +1,8 @@
-# robots.txt for Bodhgriha
-# See: https://developers.google.com/search/docs/crawling-indexing/robots/intro
-
 User-agent: *
-# Keep crawlers away from administrative and API endpoints
 Disallow: /admin/
 Disallow: /auth/
 Disallow: /api/
 
-# Avoid crawling build or JS helper files if desired
-Disallow: /static/js/
-
-# Allow public static assets (images, icons, manifest, etc.)
 Allow: /static/
 
-# Sitemap (adjust to your real absolute URL in production)
 Sitemap: /sitemap.xml

@@ -20,11 +20,72 @@
     </header>
 
     <div class="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-2xl shadow-black/25">
-      <div class="flex items-center justify-between border-b border-white/10 px-6 py-5">
-        <h2 class="text-lg font-semibold text-white">Posts Overview</h2>
-        <span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/70">
-          {{ posts|length }} total
-        </span>
+      <div class="border-b border-white/10 px-6 py-5">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-white">Posts Overview</h2>
+            <p class="mt-2 text-sm text-white/70">
+              {% if total_count %}
+                Showing <span class="font-semibold text-white">{{ start_index }}&ndash;{{ end_index }}</span> of {{ total_count }} post{{ 's' if total_count != 1 else '' }}{% if search_query %} matching <span class="font-semibold text-white">"{{ search_query }}"</span>{% endif %}.
+              {% else %}
+                No posts{% if search_query %} found for <span class="font-semibold text-white">"{{ search_query }}"</span>{% else %} available yet{% endif %}.
+              {% endif %}
+            </p>
+          </div>
+          <div class="flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/70">
+            <span class="inline-flex h-2 w-2 rounded-full bg-emerald-300"></span>
+            {{ total_count }} total
+          </div>
+        </div>
+        <form method="get"
+              action="{{ url_for('blog.dashboard') }}"
+              class="mt-4 flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <div class="relative flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 backdrop-blur sm:w-40">
+              <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M8 4h12"></path>
+                <path d="M8 12h12"></path>
+                <path d="M8 20h12"></path>
+                <path d="M4 6h.01"></path>
+                <path d="M4 12h.01"></path>
+                <path d="M4 18h.01"></path>
+              </svg>
+              <select name="field"
+                      class="w-full bg-transparent text-sm text-white focus:outline-none">
+                <option value="title" {{ 'selected' if search_field == 'title' else '' }}>Title</option>
+                <option value="slug" {{ 'selected' if search_field == 'slug' else '' }}>Slug</option>
+                <option value="all" {{ 'selected' if search_field == 'all' else '' }}>Title + Slug</option>
+              </select>
+            </div>
+            <div class="relative flex w-full items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 backdrop-blur md:w-80">
+              <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.5-3.5"></path>
+              </svg>
+              <input type="search"
+                     name="q"
+                     value="{{ search_query }}"
+                     placeholder="Search posts..."
+                     class="w-full bg-transparent text-sm text-white placeholder:text-white/50 focus:outline-none"
+                     autocomplete="off"
+                     spellcheck="false">
+              <input type="hidden" name="page" value="1">
+              <input type="hidden" name="per_page" value="{{ per_page }}">
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 rounded-full border border-emerald-300/70 bg-emerald-500/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-100 transition hover:border-emerald-200 hover:bg-emerald-500/30 hover:text-white">
+              Search
+            </button>
+            {% if search_query %}
+              <a href="{{ url_for('blog.dashboard') }}"
+                 class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-white/40 hover:text-white">
+                Reset
+              </a>
+            {% endif %}
+          </div>
+        </form>
       </div>
 
       {% if posts %}
@@ -131,15 +192,61 @@
             </tbody>
           </table>
         </div>
+
+        {% if total_pages > 1 %}
+          <nav class="flex flex-col gap-4 border-t border-white/10 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            {% if page > 1 %}
+              <a href="{{ url_for('blog.dashboard', page=page-1, q=search_query if search_query else None, field=search_field, per_page=per_page) }}"
+                 class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white">
+                ‹ Previous
+              </a>
+            {% else %}
+              <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+                ‹ Previous
+              </span>
+            {% endif %}
+
+            <div class="flex flex-wrap items-center gap-2">
+              {% for page_number in range(1, total_pages + 1) %}
+                {% set is_active = page_number == page %}
+                <a href="{{ url_for('blog.dashboard', page=page_number, q=search_query if search_query else None, field=search_field, per_page=per_page) }}"
+                   class="inline-flex h-9 w-9 items-center justify-center rounded-full border {{ 'border-emerald-300/80 bg-emerald-500/20 text-white' if is_active else 'border-white/10 bg-white/10 text-white/70 hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white' }}">
+                  {{ page_number }}
+                </a>
+              {% endfor %}
+            </div>
+
+            {% if page < total_pages %}
+              <a href="{{ url_for('blog.dashboard', page=page+1, q=search_query if search_query else None, field=search_field, per_page=per_page) }}"
+                 class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-emerald-300/60 hover:bg-emerald-400/10 hover:text-white">
+                Next ›
+              </a>
+            {% else %}
+              <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+                Next ›
+              </span>
+            {% endif %}
+          </nav>
+        {% endif %}
       {% else %}
         <div class="px-6 py-16 text-center">
           <div class="mx-auto inline-flex flex-col items-center gap-4 rounded-3xl border border-dashed border-white/20 bg-white/5 px-10 py-12 text-white/60">
             <span class="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em]">
-              No posts yet
+              No posts found
             </span>
             <p class="max-w-lg text-sm">
-              Upload your first markdown file to see it appear here. Drafts and published posts will surface together once created.
+              {% if search_query %}
+                Try adjusting your search filters or reset the search to review all draft and published posts.
+              {% else %}
+                Upload your first markdown file to see it appear here. Drafts and published posts will surface once created.
+              {% endif %}
             </p>
+            {% if search_query %}
+              <a href="{{ url_for('blog.dashboard') }}"
+                 class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/70 transition hover:border-white/40 hover:text-white">
+                Clear search
+              </a>
+            {% endif %}
           </div>
         </div>
       {% endif %}

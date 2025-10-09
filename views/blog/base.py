@@ -6,7 +6,7 @@ from utilities.parsers.mdown import parse_markdown
 from utilities.decorators import role_validation
 from flask_login import login_required
 from services.base import _context, _invert_navbar_colors
-from uuid import uuid4
+from models.blog.base import BlogDashboardFilters, BlogPaginationView
 
 bp = Blueprint("blog", __name__)
 
@@ -109,11 +109,49 @@ def index():
 @login_required
 @role_validation("ADMIN")
 def dashboard():
-    from services.blog import get_all_blogs
+    from services.blog import get_all_blogs, count_blogs
+
     admin_context = _invert_navbar_colors(_context())
 
+    filters = BlogDashboardFilters(
+        field=request.args.get("field"),
+        query=request.args.get("q"),
+        page=request.args.get("page", default=1, type=int),
+        per_page=request.args.get("per_page", default=10, type=int),
+    )
+
+    search_query = filters.normalized_query
+
     with uow(readonly=True) as db:
-        posts = get_all_blogs(db, published_only=False)
+        total_count = count_blogs(
+            db,
+            published_only=False,
+            search=search_query,
+            search_field=filters.field,
+        )
+
+        pagination = BlogPaginationView(
+            total_count=total_count,
+            page=filters.page,
+            per_page=filters.per_page,
+        ).clamp_page()
+
+        if pagination.page != filters.page:
+            filters = filters.copy(update={"page": pagination.page})
+
+        if total_count:
+            posts = get_all_blogs(
+                db,
+                published_only=False,
+                limit=pagination.per_page,
+                offset=filters.offset,
+                search=search_query,
+                search_field=filters.field,
+            )
+        else:
+            posts = []
+
+    start_index, end_index = pagination.range_indices(len(posts))
 
     admin_context.update(
         {
@@ -123,6 +161,14 @@ def dashboard():
                 "Review draft and published posts, manage visibility, "
                 "and keep the Bodhgriha voice consistent."
             ),
+            "search_query": search_query or "",
+            "search_field": filters.field,
+            "page": pagination.page,
+            "per_page": pagination.per_page,
+            "total_pages": pagination.total_pages,
+            "total_count": total_count,
+            "start_index": start_index,
+            "end_index": end_index,
         }
     )
 
