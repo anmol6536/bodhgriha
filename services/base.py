@@ -1,6 +1,7 @@
 from utilities.navbar_loader import get_navbar_context
 from utilities.about_loader import get_about_context
 from flask import request, url_for, render_template
+from flask_login import current_user
 
 
 def _invert_navbar_colors(context):
@@ -14,7 +15,14 @@ def _invert_navbar_colors(context):
 
 
 def _context():
-    return dict(
+    avatar_url = None
+    if current_user.is_authenticated:
+        meta = getattr(current_user, "meta", {}) or {}
+        avatar_sha = meta.get("avatar_sha256")
+        if avatar_sha:
+            avatar_url = url_for("user.avatar", user_id=current_user.id, v=avatar_sha)
+
+    context = dict(
         page_title="Yoga Teacher Training – Bodhgriha",
         page_description="Discover certified yoga teacher training programs across India. Compare curricula, dates, and prices.",
         canonical_url=request.base_url,
@@ -43,3 +51,5 @@ def _context():
         **get_navbar_context(),
         **get_about_context()
     )
+    context["current_user_avatar_url"] = avatar_url
+    return context

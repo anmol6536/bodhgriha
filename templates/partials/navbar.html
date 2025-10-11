@@ -2,6 +2,7 @@
 {% set nav = navbar_config %}
 {% set styles = nav.styles %}
 {% set icons = navbar_icons %}
+{% from "partials/avatar.html" import avatar as render_avatar %}
 
 <nav class="{{ styles.container.nav }}" {% if nav.container.hx_boost %}hx-boost="true"{% endif %}>
     <div class="{{ styles.container.inner }}">
@@ -61,7 +62,20 @@
                         {% if current_user.is_authenticated %}
                             <details class="relative">
                                 <summary class="{{ styles.desktop.auth_link }} inline-flex items-center gap-2 cursor-pointer">
-                                    Account
+                                    {% if current_user_avatar_url %}
+                                        {{ render_avatar(
+                                            current_user_avatar_url,
+                                            alt_text=current_user.first_name or current_user.email or 'Account avatar',
+                                            show_badge=False,
+                                            container_classes='relative inline-flex h-8 w-8 shrink-0',
+                                            img_classes='h-8 w-8 rounded-full object-cover ring-2 ring-white/20'
+                                        ) }}
+                                    {% else %}
+                                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-semibold text-white">
+                                            {{ (current_user.first_name or current_user.email or 'A')|trim|first|upper }}
+                                        </span>
+                                    {% endif %}
+                                    <span>Account</span>
                                     <svg class="h-3 w-3 text-white transition-transform duration-200 details-open:rotate-180" viewBox="0 0 10 6" fill="none" aria-hidden="true">
                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1l4 4 4-4"/>
                                     </svg>

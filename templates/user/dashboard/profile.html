@@ -4,12 +4,15 @@
 
 {% block description %}Review the core details attached to your Bodhgriha account.{% endblock %}
 
+{% from "partials/avatar.html" import avatar as render_avatar %}
+
 
 {% block content %}
 {% set is_authenticated = current_user.is_authenticated %}
 {% set user_name = current_user.first_name or current_user.name or (current_user.email|default('Guest')|split('@')|first) if is_authenticated else 'Guest' %}
 {% set owned_schools = owned_schools if owned_schools is defined else [] %}
 {% set teaching_courses = teaching_courses if teaching_courses is defined else [] %}
+{% set user_avatar_url = user_avatar_url if user_avatar_url is defined and user_avatar_url else current_user_avatar_url %}
 
 {% set role_display = "Guest" %}
 {% if is_authenticated %}
@@ -65,12 +68,33 @@
             <aside class="space-y-4">
                 <section class="rounded-3xl border border-white/10 bg-white/10 p-6 text-white backdrop-blur-2xl">
                     <div class="flex items-start gap-4">
-                        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 text-lg font-semibold text-white">
-                            {{ user_name|default('?', true)|trim|first|upper }}
-                        </div>
+                        {% if user_avatar_url %}
+                            {{ render_avatar(
+                                user_avatar_url,
+                                alt_text=user_name,
+                                show_badge=False,
+                                container_classes='relative inline-flex shrink-0',
+                                img_classes='h-14 w-14 rounded-full object-cover ring-2 ring-white/20'
+                            ) }}
+                        {% else %}
+                            <div class="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 text-lg font-semibold text-white">
+                                {{ user_name|default('?', true)|trim|first|upper }}
+                            </div>
+                        {% endif %}
                         <div class="space-y-2">
                             <h2 class="text-xl font-semibold text-white">{{ user_name }}</h2>
                             <p class="text-sm text-white/70">{{ current_user.email if is_authenticated else 'No email on file' }}</p>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring focus-visible:ring-white/40"
+                                    hx-get="{{ url_for('user.profile_avatar_modal') }}"
+                                    hx-target="#avatar-modal-container"
+                                    hx-trigger="click"
+                                    hx-swap="innerHTML">
+                                    Change avatar
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <dl class="mt-6 space-y-3">
@@ -270,5 +294,6 @@
         </div>
     </div>
 </section>
+<div id="avatar-modal-container"></div>
 <div id="address-modal-container"></div>
 {% endblock %}

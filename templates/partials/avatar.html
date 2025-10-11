@@ -1,0 +1,20 @@
+{% macro avatar(src,
+                alt_text='',
+                show_badge=False,
+                img_classes='w-10 h-10 rounded-full',
+                badge_color='green',
+                container_classes='relative') %}
+<div class="{{ container_classes }}">
+    <img class="{{ img_classes }}" src="{{ src }}" alt="{{ alt_text }}">
+    {% if show_badge %}
+        {% if badge_color == 'red' %}
+            {% set badge_color_class = 'bg-red-400' %}
+        {% elif badge_color == 'green' %}
+            {% set badge_color_class = 'bg-green-400' %}
+        {% else %}
+            {% set badge_color_class = badge_color %}
+        {% endif %}
+        <span class="bottom-0 left-7 absolute w-3.5 h-3.5 border-2 border-white dark:border-gray-800 rounded-full {{ badge_color_class }}"></span>
+    {% endif %}
+</div>
+{% endmacro %}

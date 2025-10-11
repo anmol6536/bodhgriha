@@ -8,6 +8,7 @@ from .base import (User,
                    TwoFactorCredential,
                    TwoFAMethod,
                    Address,
+                   Avatar,
                    ensure_postgres_extensions,
                    search_posts
                    )
@@ -32,4 +33,5 @@ __all__ = [
     "Testimonial",
     "TestimonialMeta",
     "Message",
+    "Avatar"
 ]

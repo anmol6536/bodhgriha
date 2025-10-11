@@ -1,0 +1,49 @@
+{% from "ui/macros/form.html" import render_form %}
+{% from "partials/avatar.html" import avatar as render_avatar %}
+
+<div class="fixed inset-0 z-50 flex items-center justify-center" id="avatar-modal-root">
+    <div class="absolute inset-0 bg-emerald-950/70 backdrop-blur-sm"
+         hx-get="{{ close_url }}"
+         hx-target="#avatar-modal-container"
+         hx-swap="innerHTML"></div>
+    <div class="relative z-10 w-full max-w-lg rounded-3xl border border-white/10 bg-white/10 text-white shadow-2xl backdrop-blur-2xl">
+        <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <h2 class="text-lg font-semibold">Update avatar</h2>
+            <button type="button"
+                    class="text-white/60 transition hover:text-white"
+                    hx-get="{{ close_url }}"
+                    hx-target="#avatar-modal-container"
+                    hx-swap="innerHTML">
+                <span class="sr-only">Close</span>
+                &times;
+            </button>
+        </div>
+        <div class="px-5 py-5 space-y-5"
+             hx-boost="true"
+             hx-target="#avatar-modal-container"
+             hx-swap="innerHTML">
+            {% if preview_url %}
+                <div class="flex justify-center">
+                    {{ render_avatar(preview_url,
+                                     alt_text=current_user.email or 'Current avatar',
+                                     show_badge=False,
+                                     container_classes='relative inline-flex',
+                                     img_classes='h-24 w-24 rounded-full object-cover ring-4 ring-white/20') }}
+                </div>
+            {% endif %}
+            <p class="text-sm text-white/80">
+                Upload a square image up to 1&nbsp;MB. Accepted formats include JPEG, PNG, and WEBP.
+            </p>
+            {{ render_form(
+                form,
+                action=url_for('user.upload_avatar'),
+                method='POST',
+                submit_label='Save avatar',
+                form_classes='space-y-4',
+                grid_classes='grid grid-cols-1 gap-4',
+                submit_classes='w-full rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300',
+                extra_attrs={'avatar': {'accept': 'image/*'}}
+            ) }}
+        </div>
+    </div>
+</div>

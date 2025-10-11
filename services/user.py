@@ -17,7 +17,7 @@ from flask_login import current_user
 from flask import url_for
 
 from forms.user import LoginForm, AddressForm
-from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential, Address
+from models.sql import User, RoleBits, UserSession, TwoFAMethod, TwoFactorCredential, Address, Avatar
 from models.yoga.base import YogaSchool
 from utilities import LOGGER
 
@@ -540,6 +540,49 @@ def reset_password(db: Session, email: str, old_password: str, new_password: str
         raise ValueError("incorrect_password")
 
     forced_update_password(db, user, new_password)
+
+
+def update_user_avatar(
+        db: Session,
+        *,
+        user_id: int,
+        avatar_data: Dict[str, Any],
+) -> Avatar:
+    """
+    Create or replace a user's avatar record and store metadata for cache busting.
+
+    Args:
+        db: Active database session.
+        user_id: The owner of the avatar.
+        avatar_data: Processed image payload from services.content.avatar.prepare_avatar.
+
+    Returns:
+        The persisted Avatar instance.
+    """
+    avatar = db.scalar(select(Avatar).where(Avatar.user_id == user_id))
+    if avatar is None:
+        avatar = Avatar(user_id=user_id)
+        db.add(avatar)
+
+    avatar.content = avatar_data["content"]
+    avatar.content_type = avatar_data.get("content_type", "image/webp")
+    avatar.size_bytes = avatar_data["size_bytes"]
+    avatar.sha256 = avatar_data["sha256"]
+    avatar.width = avatar_data.get("width")
+    avatar.height = avatar_data.get("height")
+    avatar.uploaded_at = datetime.now(timezone.utc)
+
+    user = db.get(User, user_id)
+    if user is None:
+        raise ValueError("user_not_found")
+
+    meta = dict(user.meta or {})
+    meta["avatar_sha256"] = avatar.sha256
+    meta["avatar_updated_at"] = avatar.uploaded_at.isoformat()
+    user.meta = meta
+
+    db.flush()
+    return avatar
 
 
 def save_address_from_form(

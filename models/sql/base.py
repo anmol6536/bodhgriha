@@ -12,7 +12,7 @@ from sqlalchemy import (
     Index, UniqueConstraint, text, func, Enum as SQLEnum
 )
 from sqlalchemy.dialects.postgresql import CITEXT, JSONB, INET, UUID, ARRAY
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, deferred
 from flask_login import UserMixin
 
 from sqlalchemy import (
@@ -28,10 +28,10 @@ from sqlalchemy import (
     Text,
     func,
     text,
-    UniqueConstraint,
+    LargeBinary
 )
 from sqlalchemy.dialects.postgresql import CITEXT, JSONB, TSVECTOR
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, backref
 from sqlalchemy import Computed
 
 from models import Base
@@ -105,6 +105,41 @@ class User(UserMixin, TimestampMixin, Base):
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r} roles={RoleBits(self.role_bits)}>"
+
+
+class Avatar(Base):
+    __tablename__ = "avatars"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,               # enforce 1:1 user <-> avatar
+    )
+
+    # Store small images (e.g., <= 1MB) inline as BYTEA; load lazily
+    content: Mapped[bytes] = deferred(mapped_column(LargeBinary, nullable=False))
+    content_type: Mapped[str] = mapped_column(nullable=False, default="image/webp")
+    size_bytes: Mapped[int] = mapped_column(nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    width: Mapped[int | None] = mapped_column(nullable=True)
+    height: Mapped[int | None] = mapped_column(nullable=True)
+
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    user: Mapped["User"] = relationship(backref=backref("avatar", uselist=False))
+
+    __table_args__ = (
+        Index("ix_avatars_user", "user_id"),
+        CheckConstraint("size_bytes <= 1048576", name="ck_avatar_max_1mb"),  # adjust as needed
+        dict(schema="content", comment="User avatars; one per user"),
+    )
 
 
 # ---- Keep your Base, TimestampMixin, RoleBits, User as-is above this line ----

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField, SelectField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField, SelectField, FileField
 from wtforms.validators import DataRequired, Email, Length, Optional
 
 
@@ -171,3 +171,16 @@ class AddressForm(FlaskForm):
     is_primary = BooleanField("Primary address")
 
     submit = SubmitField("Save address")
+
+
+
+class AvatarUploadForm(FlaskForm):
+    """Form to upload or change user avatar."""
+
+    avatar = FileField(
+        "Upload Avatar",
+        validators=[DataRequired()],
+        description="Choose an image file to upload as your avatar"
+    )
+    
+    submit = SubmitField("Upload Avatar")

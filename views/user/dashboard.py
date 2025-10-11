@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, render_template
+from flask import Blueprint, Response, render_template, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -26,7 +26,10 @@ def profile() -> Response:
     with uow(readonly=True) as db:
         user_stmt = (
             select(UserModel)
-            .options(selectinload(UserModel.addresses))
+            .options(
+                selectinload(UserModel.addresses),
+                selectinload(UserModel.avatar),
+            )
             .where(UserModel.id == current_user.id)
         )
         user = db.execute(user_stmt).scalar_one()
@@ -51,11 +54,24 @@ def profile() -> Response:
         )
         teaching_courses = db.execute(courses_stmt).scalars().all()
 
+    avatar_obj = getattr(user, "avatar", None)
+    if isinstance(avatar_obj, list):
+        avatar_obj = avatar_obj[0] if avatar_obj else None
+
+    avatar_version = None
+    if avatar_obj:
+        avatar_version = avatar_obj.sha256
+    elif user.meta:
+        avatar_version = user.meta.get("avatar_sha256")
+
+    avatar_url = url_for("user.avatar", user_id=user.id, v=avatar_version) if avatar_version else None
+
     base_context.update(
         addresses=addresses,
         testimonials=testimonials,
         owned_schools=owned_schools,
         teaching_courses=teaching_courses,
+        user_avatar_url=avatar_url,
     )
 
     return render_template(

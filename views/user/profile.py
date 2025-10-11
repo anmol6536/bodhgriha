@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from flask import abort, make_response, render_template_string, request, url_for
+import io
+
+from flask import abort, flash, make_response, render_template, render_template_string, request, send_file, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import select
 
 from core.db import uow
-from forms.user import AddressForm
-from models.sql import Address
-from services.user import save_address_from_form
+from forms.user import AddressForm, AvatarUploadForm
+from models.sql import Address, Avatar
+from services.content.avatar import prepare_avatar
+from services.user import save_address_from_form, update_user_avatar
 
 from .dashboard import bp
 
@@ -58,6 +62,26 @@ def _render_address_modal(*, form: AddressForm, editing: bool) -> str:
     return render_template_string(template, form=form, editing=editing, close_url=close_url)
 
 
+def _render_avatar_modal(*, form: AvatarUploadForm) -> str:
+    """
+    Render the avatar upload modal as a standalone template for HTMX.
+    """
+    close_url = url_for("user.profile_avatar_modal", close=1)
+    preview_url = None
+    if current_user.is_authenticated:
+        meta = getattr(current_user, "meta", {}) or {}
+        avatar_sha = meta.get("avatar_sha256")
+        if avatar_sha:
+            preview_url = url_for("user.avatar", user_id=current_user.id, v=avatar_sha)
+
+    return render_template(
+        "user/dashboard/avatar_modal.html",
+        form=form,
+        close_url=close_url,
+        preview_url=preview_url,
+    )
+
+
 @bp.route("/profile/address-modal", methods=["GET", "POST"])
 @login_required
 def profile_address_modal():
@@ -104,3 +128,58 @@ def profile_address_modal():
 
     editing = bool(form.id.data)
     return _render_address_modal(form=form, editing=editing), 400
+
+
+@bp.route("/profile/avatar-modal", methods=["GET"])
+@login_required
+def profile_avatar_modal():
+    if request.args.get("close"):
+        return ""
+
+    form = AvatarUploadForm()
+    return _render_avatar_modal(form=form)
+
+
+@bp.route("/avatar/upload", methods=["POST"])
+@login_required
+def upload_avatar():
+    form = AvatarUploadForm()
+    if form.validate_on_submit():
+        avatar_file = form.avatar.data
+        if not avatar_file:
+            abort(400, "No file uploaded")
+
+        file_bytes = avatar_file.read()
+        if not file_bytes:
+            abort(400, "Empty file uploaded")
+
+        avatar_data = prepare_avatar(file_bytes)
+
+        with uow() as db:
+            update_user_avatar(db, user_id=current_user.id, avatar_data=avatar_data)
+            flash("Avatar updated successfully", "success")
+
+        response = make_response("", 204)
+        response.headers["HX-Redirect"] = url_for("user.profile")
+        return response
+
+    return _render_avatar_modal(form=form), 400
+
+
+@bp.route("/avatar/<int:user_id>")
+@login_required
+def avatar(user_id: int):
+    with uow(readonly=True) as db:
+        avatar = db.scalar(select(Avatar).where(Avatar.user_id == user_id))
+        if not avatar:
+            abort(404)
+
+        return send_file(
+            io.BytesIO(avatar.content),
+            mimetype=avatar.content_type,
+            download_name=f"user-{user_id}-avatar",
+            max_age=0,
+            last_modified=avatar.uploaded_at,
+            conditional=True,
+            etag=avatar.sha256,
+        )
